@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security R&D Toolkit</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1a2332;--surface3:#243044;--accent:#ef4444;--accent2:#f97316;--green:#22c55e;--blue:#3b82f6;--purple:#a855f7;--cyan:#06b6d4;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:#1e293b}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.hero{text-align:center;padding:60px 24px 40px;max-width:800px;margin:0 auto}
+.hero-icon{font-size:48px;margin-bottom:16px}
+.hero h1{font-size:32px;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--text2);font-size:15px;line-height:1.6;max-width:600px;margin:0 auto}
+
+.section-label{font-size:11px;text-transform:uppercase;letter-spacing:2px;color:var(--text3);font-weight:600;padding:0 24px;max-width:1100px;margin:32px auto 12px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;padding:0 24px;max-width:1100px;margin:0 auto}
+
+.tool-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;text-decoration:none;color:inherit;transition:all .25s;display:flex;flex-direction:column;position:relative;overflow:hidden}
+.tool-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.tool-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:0;transition:opacity .25s}
+.tool-card:hover::before{opacity:1}
+
+.card-icon{font-size:28px;margin-bottom:12px}
+.card-title{font-size:17px;font-weight:700;margin-bottom:6px}
+.card-desc{font-size:13px;color:var(--text2);line-height:1.5;flex:1}
+.card-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.tag{font-size:10px;padding:3px 10px;border-radius:12px;font-weight:500}
+.tag-red{background:rgba(239,68,68,.12);color:var(--accent)}
+.tag-blue{background:rgba(59,130,246,.12);color:var(--blue)}
+.tag-green{background:rgba(34,197,94,.12);color:var(--green)}
+.tag-purple{background:rgba(168,85,247,.12);color:var(--purple)}
+.tag-cyan{background:rgba(6,182,212,.12);color:var(--cyan)}
+.tag-orange{background:rgba(249,115,22,.12);color:var(--accent2)}
+
+.footer{text-align:center;padding:48px 24px 32px;color:var(--text3);font-size:12px}
+.footer a{color:var(--text2);text-decoration:none}
+
+@media(max-width:700px){
+  .hero h1{font-size:24px}
+  .grid{grid-template-columns:1fr;padding:0 16px}
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-icon">🛡️</div>
+  <h1>Security R&D Toolkit</h1>
+  <p>Interactive tools for threat research, exploit development, red team operations, and interview preparation. Built for Microsoft Security R&D work — all tools run entirely in-browser with zero dependencies.</p>
+</div>
+
+<div class="section-label">Research & Analysis</div>
+<div class="grid">
+  <a class="tool-card" href="mitre-attack-explorer.html">
+    <div class="card-icon">🗂️</div>
+    <div class="card-title">MITRE ATT&CK Explorer</div>
+    <div class="card-desc">Interactive matrix with 14 tactics, 50+ techniques, searchable database, attack chain builder, and quiz mode for self-assessment.</div>
+    <div class="card-tags"><span class="tag tag-red">ATT&CK</span><span class="tag tag-blue">Interactive</span><span class="tag tag-green">Quiz</span></div>
+  </a>
+  <a class="tool-card" href="threat-modeling-workbench.html">
+    <div class="card-icon">🏗️</div>
+    <div class="card-title">Threat Modeling Workbench</div>
+    <div class="card-desc">STRIDE analysis, DREAD scoring calculator, attack tree builder, kill chain mapping with defensive controls, and risk matrix.</div>
+    <div class="card-tags"><span class="tag tag-red">STRIDE</span><span class="tag tag-orange">DREAD</span><span class="tag tag-blue">Kill Chain</span></div>
+  </a>
+  <a class="tool-card" href="ai-security-research-toolkit.html">
+    <div class="card-icon">🤖</div>
+    <div class="card-title">AI Security Research Toolkit</div>
+    <div class="card-desc">LLM attacks, adversarial ML, MITRE ATLAS mapping, OWASP Top 10 for LLMs, red team methodology for AI systems, and Enterprise Copilot scenario.</div>
+    <div class="card-tags"><span class="tag tag-purple">AI/ML</span><span class="tag tag-red">ATLAS</span><span class="tag tag-cyan">LLM Security</span></div>
+  </a>
+  <a class="tool-card" href="cloud-attack-simulator.html">
+    <div class="card-icon">☁️</div>
+    <div class="card-title">Cloud Attack Simulator</div>
+    <div class="card-desc">Azure, AWS, GCP, and hybrid attack paths with step-by-step walkthroughs, detection queries (KQL/CloudTrail), and cross-cloud comparison.</div>
+    <div class="card-tags"><span class="tag tag-blue">Azure</span><span class="tag tag-orange">AWS</span><span class="tag tag-green">GCP</span></div>
+  </a>
+</div>
+
+<div class="section-label">Offensive Security</div>
+<div class="grid">
+  <a class="tool-card" href="reverse-engineering-workbench.html">
+    <div class="card-icon">🔬</div>
+    <div class="card-title">Reverse Engineering Workbench</div>
+    <div class="card-desc">PE/ELF format analysis, x86/x64 assembly patterns, malware taxonomy, shellcode analysis, C2 protocols, crypto identification, and YARA rules.</div>
+    <div class="card-tags"><span class="tag tag-red">Malware</span><span class="tag tag-purple">Assembly</span><span class="tag tag-cyan">YARA</span></div>
+  </a>
+  <a class="tool-card" href="red-team-ops-planner.html">
+    <div class="card-icon">🎯</div>
+    <div class="card-title">Red Team Ops Planner</div>
+    <div class="card-desc">Engagement planning, recon workflows, C2 architecture comparison, payload engineering, evasion techniques, and purple team integration.</div>
+    <div class="card-tags"><span class="tag tag-red">Red Team</span><span class="tag tag-orange">C2</span><span class="tag tag-blue">OPSEC</span></div>
+  </a>
+  <a class="tool-card" href="exploit-dev-reference.html">
+    <div class="card-icon">💥</div>
+    <div class="card-title">Exploit Development Reference</div>
+    <div class="card-desc">Memory layout, stack/heap exploitation, ROP chains, format strings, kernel exploits, modern mitigations (ASLR/DEP/CFG/CET), and bypass techniques.</div>
+    <div class="card-tags"><span class="tag tag-red">Exploits</span><span class="tag tag-purple">ROP</span><span class="tag tag-orange">Heap</span></div>
+  </a>
+</div>
+
+<div class="section-label">Threat Intelligence</div>
+<div class="grid">
+  <a class="tool-card" href="apt-tracker-dashboard.html">
+    <div class="card-icon">📡</div>
+    <div class="card-title">APT Reference Database</div>
+    <div class="card-desc">Profiles of 13+ major APT groups, campaign timelines, Microsoft naming taxonomy, TTP trends, and Defender TI integration reference.</div>
+    <div class="card-tags"><span class="tag tag-red">APT</span><span class="tag tag-blue">Intel</span><span class="tag tag-cyan">Microsoft</span></div>
+  </a>
+  <a class="tool-card" href="apt-investigation-tracker.html">
+    <div class="card-icon">🔎</div>
+    <div class="card-title">APT Investigation Tracker</div>
+    <div class="card-desc">Active investigation workspace — collect IOCs, map TTPs, track infrastructure, build Diamond Model analyses, score attribution, and generate STIX reports.</div>
+    <div class="card-tags"><span class="tag tag-green">Interactive</span><span class="tag tag-purple">Diamond Model</span><span class="tag tag-orange">STIX</span></div>
+  </a>
+</div>
+
+<div class="section-label">Preparation</div>
+<div class="grid">
+  <a class="tool-card" href="interview-prep-engine.html">
+    <div class="card-icon">🎓</div>
+    <div class="card-title">Interview Prep Engine</div>
+    <div class="card-desc">Timed scenario practice across 6 categories — threat modeling, attack analysis, cloud security, OS internals, AI security, and behavioral questions.</div>
+    <div class="card-tags"><span class="tag tag-green">Practice</span><span class="tag tag-blue">Timed</span><span class="tag tag-orange">Rubrics</span></div>
+  </a>
+  <a class="tool-card" href="security-reference-library.html">
+    <div class="card-icon">📚</div>
+    <div class="card-title">Security Reference Library</div>
+    <div class="card-desc">Comprehensive cheat sheets — ATT&CK, STRIDE, Windows internals, Active Directory, Kerberos, cloud IAM, Kubernetes, LLM security, and detection engineering.</div>
+    <div class="card-tags"><span class="tag tag-cyan">Reference</span><span class="tag tag-red">Cheat Sheets</span><span class="tag tag-purple">14 Topics</span></div>
+  </a>
+</div>
+
+<div class="footer">
+  <p>All tools run entirely in-browser — no server, no dependencies, no data leaves your machine.</p>
+</div>
+
+</body>
+</html>
