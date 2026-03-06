@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reverse Engineering Workbench</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#08090d;--s1:#0e1118;--s2:#161a26;--s3:#1e2333;--bd:#2a3045;--t1:#c8cee0;--t2:#6b7394;--ac:#00d4aa;--ac2:#33e8c0;--red:#ff5555;--org:#ffb86c;--yel:#f1fa8c;--grn:#50fa7b;--blue:#6272a4;--pur:#bd93f9;--cyn:#8be9fd;--pink:#ff79c6}
+body{font-family:'JetBrains Mono','Fira Code','SF Mono',monospace;background:var(--bg);color:var(--t1);min-height:100vh}
+.app{display:flex;height:100vh}
+.sidebar{width:220px;background:var(--s1);border-right:1px solid var(--bd);overflow-y:auto;flex-shrink:0}
+.sidebar-header{padding:14px 16px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:700;color:var(--ac);font-family:'Segoe UI',system-ui,sans-serif}
+.nav-group{padding:8px 0}
+.nav-label{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--blue);padding:8px 16px 4px}
+.nav-item{padding:6px 16px;cursor:pointer;font-size:11px;color:var(--t2);transition:all .12s;border-left:2px solid transparent}
+.nav-item:hover{background:var(--s2);color:var(--t1)}
+.nav-item.active{color:var(--ac);border-left-color:var(--ac);background:rgba(0,212,170,.05)}
+.main{flex:1;overflow-y:auto;padding:20px}
+.main h2{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--ac);font-family:'Segoe UI',system-ui,sans-serif}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:12px}
+.card h3{font-size:13px;margin-bottom:10px;font-family:'Segoe UI',system-ui,sans-serif;color:var(--t1)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+table{width:100%;border-collapse:collapse;font-size:10px}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--bd)}
+th{color:var(--blue);font-size:9px;text-transform:uppercase;letter-spacing:.5px}
+.code{background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:10px;font-size:10px;line-height:1.7;overflow-x:auto;white-space:pre;margin:6px 0}
+.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;margin:1px}
+.t-red{background:rgba(255,85,85,.12);color:var(--red)}
+.t-org{background:rgba(255,184,108,.12);color:var(--org)}
+.t-yel{background:rgba(241,250,140,.12);color:var(--yel)}
+.t-grn{background:rgba(80,250,123,.12);color:var(--grn)}
+.t-pur{background:rgba(189,147,249,.12);color:var(--pur)}
+.t-cyn{background:rgba(139,233,253,.12);color:var(--cyn)}
+.t-pink{background:rgba(255,121,198,.12);color:var(--pink)}
+.cheat{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:10px;margin:4px 0;font-size:10px;line-height:1.6}
+.cheat h4{font-size:10px;color:var(--ac);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px;font-family:'Segoe UI',system-ui,sans-serif}
+.cmd{background:var(--bg);padding:1px 4px;border-radius:2px;font-size:9px;color:var(--cyn)}
+.hex-display{font-family:inherit;font-size:10px;background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:8px;line-height:1.8}
+.hex-offset{color:var(--blue)}
+.hex-bytes{color:var(--org)}
+.hex-ascii{color:var(--grn)}
+.reg{color:var(--pink);font-weight:600}
+.ins{color:var(--cyn)}
+.addr{color:var(--yel)}
+.comment{color:var(--blue);font-style:italic}
+.section-divider{border-top:1px solid var(--bd);margin:16px 0}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <div class="sidebar-header">RE Workbench</div>
+  <div class="nav-group">
+    <div class="nav-label">Binary Analysis</div>
+    <div class="nav-item active" onclick="show('pe')">PE File Format</div>
+    <div class="nav-item" onclick="show('elf')">ELF Format</div>
+    <div class="nav-item" onclick="show('headers')">Header Analysis</div>
+    <div class="nav-item" onclick="show('packing')">Packing & Obfuscation</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Assembly & Disassembly</div>
+    <div class="nav-item" onclick="show('x86')">x86/x64 Reference</div>
+    <div class="nav-item" onclick="show('patterns')">Common RE Patterns</div>
+    <div class="nav-item" onclick="show('calling')">Calling Conventions</div>
+    <div class="nav-item" onclick="show('anti')">Anti-Analysis Techniques</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Malware Analysis</div>
+    <div class="nav-item" onclick="show('malware')">Malware Taxonomy</div>
+    <div class="nav-item" onclick="show('shellcode')">Shellcode Analysis</div>
+    <div class="nav-item" onclick="show('c2proto')">C2 Protocol Patterns</div>
+    <div class="nav-item" onclick="show('crypto')">Crypto Identification</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-label">Tools & Workflow</div>
+    <div class="nav-item" onclick="show('tools')">Tool Reference</div>
+    <div class="nav-item" onclick="show('workflow')">Analysis Workflow</div>
+    <div class="nav-item" onclick="show('yara')">YARA Rules</div>
+  </div>
+</div>
+<div class="main" id="content"></div>
+</div>
+<script>
+const S={
+pe:`<h2>PE (Portable Executable) Format</h2>
+<div class="card"><h3>PE Structure Overview</h3>
+<div class="code"><span class="hex-offset">Offset</span>    <span class="hex-bytes">Structure</span>           <span class="comment">// Purpose</span>
+<span class="hex-offset">0x00</span>      <span class="hex-bytes">DOS Header</span>          <span class="comment">// MZ signature (0x5A4D), e_lfanew pointer</span>
+<span class="hex-offset">0x3C</span>      <span class="hex-bytes">e_lfanew</span>            <span class="comment">// Offset to PE signature</span>
+<span class="hex-offset">var</span>       <span class="hex-bytes">PE Signature</span>        <span class="comment">// "PE\\0\\0" (0x50450000)</span>
+<span class="hex-offset">+0x04</span>     <span class="hex-bytes">COFF Header</span>         <span class="comment">// Machine, NumberOfSections, TimeDateStamp</span>
+<span class="hex-offset">+0x18</span>     <span class="hex-bytes">Optional Header</span>     <span class="comment">// AddressOfEntryPoint, ImageBase, Subsystem</span>
+<span class="hex-offset">+var</span>      <span class="hex-bytes">Data Directories</span>    <span class="comment">// Import, Export, Resource, TLS, etc.</span>
+<span class="hex-offset">+var</span>      <span class="hex-bytes">Section Headers</span>     <span class="comment">// .text, .data, .rsrc, .reloc, etc.</span>
+<span class="hex-offset">+var</span>      <span class="hex-bytes">Section Data</span>        <span class="comment">// Actual code and data</span></div></div>
+<div class="card"><h3>Key Data Directories</h3>
+<table>
+<tr><th>Index</th><th>Directory</th><th>Purpose</th><th>Red Flags</th></tr>
+<tr><td>0</td><td>Export Table</td><td>Exported functions (DLLs)</td><td>Unusual exports in non-DLL</td></tr>
+<tr><td>1</td><td>Import Table</td><td>Imported DLLs & functions</td><td>Suspicious APIs, few imports (packed)</td></tr>
+<tr><td>2</td><td>Resource Table</td><td>Embedded resources</td><td>Large resources (embedded payloads)</td></tr>
+<tr><td>5</td><td>Base Relocations</td><td>Address fixups for ASLR</td><td>Missing relocs (position-dependent)</td></tr>
+<tr><td>6</td><td>Debug Directory</td><td>Debug info (PDB path)</td><td>PDB paths revealing dev environment</td></tr>
+<tr><td>9</td><td>TLS Directory</td><td>Thread Local Storage</td><td>TLS callbacks (anti-debug execution before EP)</td></tr>
+<tr><td>11</td><td>Bound Import</td><td>Pre-bound import addresses</td><td>Tampered bindings</td></tr>
+<tr><td>12</td><td>IAT</td><td>Import Address Table</td><td>Patched IAT (API hooking)</td></tr>
+<tr><td>14</td><td>CLR Header</td><td>.NET metadata</td><td>.NET malware, obfuscated IL</td></tr>
+</table></div>
+<div class="card"><h3>Section Characteristics (Suspicious Combinations)</h3>
+<table>
+<tr><th>Section</th><th>Normal Flags</th><th>Suspicious</th><th>Indicates</th></tr>
+<tr><td>.text</td><td>CODE | EXECUTE | READ</td><td>+WRITE</td><td>Self-modifying code, unpacking</td></tr>
+<tr><td>.data</td><td>INITIALIZED | READ | WRITE</td><td>+EXECUTE</td><td>Code in data section, shellcode</td></tr>
+<tr><td>.rsrc</td><td>INITIALIZED | READ</td><td>+EXECUTE</td><td>Resource-based code execution</td></tr>
+<tr><td>UPX0</td><td>UNINITIALIZED | READ | WRITE | EXECUTE</td><td>Always suspicious</td><td>UPX packer stub</td></tr>
+<tr><td>Random names</td><td>Varies</td><td>High entropy + EXECUTE</td><td>Custom packer, encrypted payload</td></tr>
+</table></div>
+<div class="card"><h3>Suspicious Import Combinations</h3>
+<div class="grid2">
+<div class="cheat"><h4>Process Injection</h4><span class="cmd">VirtualAllocEx</span> + <span class="cmd">WriteProcessMemory</span> + <span class="cmd">CreateRemoteThread</span><br><span class="cmd">NtMapViewOfSection</span> + <span class="cmd">NtCreateSection</span><br><span class="cmd">QueueUserAPC</span> + <span class="cmd">NtAlertResumeThread</span></div>
+<div class="cheat"><h4>Defense Evasion</h4><span class="cmd">NtProtectVirtualMemory</span> (RWX changes)<br><span class="cmd">AmsiScanBuffer</span> patch target<br><span class="cmd">EtwEventWrite</span> patch target</div>
+<div class="cheat"><h4>Credential Access</h4><span class="cmd">OpenProcess</span> on lsass.exe<br><span class="cmd">MiniDumpWriteDump</span><br><span class="cmd">LsaCallAuthenticationPackage</span></div>
+<div class="cheat"><h4>Persistence</h4><span class="cmd">RegSetValueEx</span> (Run keys)<br><span class="cmd">CreateService</span><br><span class="cmd">SetWindowsHookEx</span> (DLL injection via hooks)</div>
+<div class="cheat"><h4>Discovery</h4><span class="cmd">GetAdaptersInfo</span> + <span class="cmd">GetComputerName</span><br><span class="cmd">NetShareEnum</span> + <span class="cmd">NetUserEnum</span><br><span class="cmd">CreateToolhelp32Snapshot</span> (process listing)</div>
+<div class="cheat"><h4>C2 / Exfiltration</h4><span class="cmd">InternetOpenUrl</span> + <span class="cmd">HttpSendRequest</span><br><span class="cmd">WinHttpConnect</span> + <span class="cmd">WinHttpSendRequest</span><br><span class="cmd">DnsQuery</span> (DNS tunneling)</div>
+</div></div>`,
+
+elf:`<h2>ELF (Executable and Linkable Format)</h2>
+<div class="card"><h3>ELF Structure</h3>
+<div class="code"><span class="hex-offset">Offset</span>    <span class="hex-bytes">Structure</span>           <span class="comment">// Purpose</span>
+<span class="hex-offset">0x00</span>      <span class="hex-bytes">ELF Header</span>          <span class="comment">// \\x7fELF magic, class (32/64), endianness, type</span>
+<span class="hex-offset">+0x10</span>     <span class="hex-bytes">e_type</span>              <span class="comment">// ET_EXEC (2), ET_DYN (3=PIE/shared), ET_REL (1)</span>
+<span class="hex-offset">+0x18</span>     <span class="hex-bytes">e_entry</span>             <span class="comment">// Entry point virtual address</span>
+<span class="hex-offset">+0x20</span>     <span class="hex-bytes">e_phoff</span>             <span class="comment">// Program header table offset</span>
+<span class="hex-offset">+0x28</span>     <span class="hex-bytes">e_shoff</span>             <span class="comment">// Section header table offset</span>
+<span class="hex-offset">var</span>       <span class="hex-bytes">Program Headers</span>     <span class="comment">// PT_LOAD, PT_DYNAMIC, PT_INTERP, PT_NOTE</span>
+<span class="hex-offset">var</span>       <span class="hex-bytes">Sections</span>            <span class="comment">// .text, .data, .bss, .got, .plt, .symtab</span></div></div>
+<div class="card"><h3>Key Sections for RE</h3>
+<table>
+<tr><th>Section</th><th>Purpose</th><th>RE Interest</th></tr>
+<tr><td>.text</td><td>Executable code</td><td>Primary disassembly target</td></tr>
+<tr><td>.plt / .got</td><td>Procedure Linkage / Global Offset Table</td><td>Lazy binding, GOT overwrite attacks</td></tr>
+<tr><td>.init / .fini</td><td>Constructor/destructor functions</td><td>Anti-debug, early initialization code</td></tr>
+<tr><td>.init_array</td><td>Array of init function pointers</td><td>Hijacking for persistence/evasion</td></tr>
+<tr><td>.dynamic</td><td>Dynamic linking information</td><td>LD_PRELOAD, RPATH manipulation</td></tr>
+<tr><td>.rodata</td><td>Read-only data (strings, constants)</td><td>String analysis, hardcoded configs</td></tr>
+<tr><td>.symtab</td><td>Symbol table</td><td>Function names if not stripped</td></tr>
+<tr><td>.debug_*</td><td>DWARF debug information</td><td>Source-level analysis if present</td></tr>
+</table></div>
+<div class="card"><h3>Linux Malware Indicators</h3>
+<div class="grid2">
+<div class="cheat"><h4>Suspicious Syscalls</h4><span class="cmd">memfd_create</span> - fileless execution<br><span class="cmd">ptrace(PTRACE_TRACEME)</span> - anti-debug<br><span class="cmd">prctl(PR_SET_NAME)</span> - process name hiding<br><span class="cmd">mount(..., MS_BIND)</span> - filesystem manipulation</div>
+<div class="cheat"><h4>Persistence Mechanisms</h4><span class="cmd">/etc/cron.d/</span> - cron persistence<br><span class="cmd">/etc/ld.so.preload</span> - library preloading<br><span class="cmd">~/.bashrc</span> - shell startup<br><span class="cmd">systemd services</span> - service persistence<br><span class="cmd">/dev/shm/</span> - tmpfs staging</div>
+</div></div>`,
+
+headers:`<h2>Header Analysis Quick Reference</h2>
+<div class="card"><h3>File Magic Bytes</h3>
+<table>
+<tr><th>Magic</th><th>Hex</th><th>Format</th><th>Notes</th></tr>
+<tr><td>MZ</td><td><span class="cmd">4D 5A</span></td><td>PE / DOS executable</td><td>Check e_lfanew for PE offset</td></tr>
+<tr><td>\\x7fELF</td><td><span class="cmd">7F 45 4C 46</span></td><td>ELF binary</td><td>Linux/BSD/Android executables</td></tr>
+<tr><td>\\xCE\\xFA\\xED\\xFE</td><td><span class="cmd">CE FA ED FE</span></td><td>Mach-O (32-bit)</td><td>macOS/iOS binaries</td></tr>
+<tr><td>\\xCF\\xFA\\xED\\xFE</td><td><span class="cmd">CF FA ED FE</span></td><td>Mach-O (64-bit)</td><td>macOS/iOS binaries</td></tr>
+<tr><td>PK</td><td><span class="cmd">50 4B 03 04</span></td><td>ZIP / JAR / APK / DOCX</td><td>Many formats are ZIP-based</td></tr>
+<tr><td>\\xD0\\xCF</td><td><span class="cmd">D0 CF 11 E0</span></td><td>OLE2 (DOC, XLS, PPT)</td><td>Legacy Office, often used in macros</td></tr>
+<tr><td>%PDF</td><td><span class="cmd">25 50 44 46</span></td><td>PDF</td><td>Check for /JS, /JavaScript, /OpenAction</td></tr>
+<tr><td>Rar!</td><td><span class="cmd">52 61 72 21</span></td><td>RAR archive</td><td>Password-protected archives common in malware delivery</td></tr>
+<tr><td>\\x00asm</td><td><span class="cmd">00 61 73 6D</span></td><td>WebAssembly</td><td>Emerging vector for browser-based attacks</td></tr>
+</table></div>
+<div class="card"><h3>Entropy Analysis</h3>
+<div class="cheat"><h4>Shannon Entropy Guide</h4>
+0.0 - 1.0: Uniform data (nulls, repeated patterns)<br>
+3.0 - 5.0: English text, code, structured data<br>
+5.0 - 6.5: Normal compiled code sections<br>
+7.0 - 7.5: Compressed data (zlib, LZMA)<br>
+<span style="color:var(--red)">7.5 - 8.0: Encrypted or packed data (SUSPICIOUS)</span><br>
+<br>
+High entropy across entire binary = likely packed/encrypted<br>
+High entropy in single section = embedded encrypted payload<br>
+Tool: <span class="cmd">binwalk -E</span> for entropy visualization
+</div></div>`,
+
+packing:`<h2>Packing & Obfuscation</h2>
+<div class="card"><h3>Common Packers & Indicators</h3>
+<table>
+<tr><th>Packer</th><th>Signature</th><th>Characteristics</th><th>Unpacking Approach</th></tr>
+<tr><td>UPX</td><td>UPX0, UPX1 sections</td><td>Most common open-source packer</td><td><span class="cmd">upx -d</span> or dump after EP</td></tr>
+<tr><td>Themida/WinLicense</td><td>VM-based protection</td><td>Heavy anti-debug, virtual machine</td><td>Manual OEP finding, Scylla dump</td></tr>
+<tr><td>VMProtect</td><td>VM section (.vmp*)</td><td>Code virtualization, mutations</td><td>Very hard - VM handler analysis</td></tr>
+<tr><td>ASPack</td><td>.aspack section</td><td>Compression-based packer</td><td>Breakpoint on VirtualAlloc, dump</td></tr>
+<tr><td>Enigma Protector</td><td>.enigma sections</td><td>Anti-debug, anti-dump, licensing</td><td>Trace to OEP, reconstruct IAT</td></tr>
+<tr><td>Custom packer</td><td>Non-standard sections, high entropy</td><td>Unique per malware family</td><td>Dynamic analysis, trace allocations</td></tr>
+</table></div>
+<div class="card"><h3>Generic Unpacking Workflow</h3>
+<div class="cheat"><h4>1. Identify Packer</h4><span class="cmd">DIE (Detect It Easy)</span>, <span class="cmd">PEiD</span>, <span class="cmd">Exeinfo PE</span> - signature-based detection<br>Manual: Check section names, entropy, import count (packed = few imports)</div>
+<div class="cheat"><h4>2. Find Original Entry Point (OEP)</h4>Methods:<br>
+- <span style="color:var(--pink)">ESP trick</span>: Hardware breakpoint on ESP after initial PUSHAD<br>
+- <span style="color:var(--pink)">Memory breakpoint</span>: Break on execute in .text section<br>
+- <span style="color:var(--pink)">API breakpoint</span>: Break on VirtualProtect (changing .text to RX)<br>
+- <span style="color:var(--pink)">Last exception</span>: Single-step through final stages</div>
+<div class="cheat"><h4>3. Dump & Fix</h4>At OEP: dump process memory with <span class="cmd">Scylla</span> or <span class="cmd">OllyDump</span><br>Fix IAT: <span class="cmd">Scylla</span> IAT Autosearch + Get Imports<br>Fix PE: Realign sections, fix headers with <span class="cmd">pe-bear</span></div>
+</div>
+<div class="card"><h3>Obfuscation Techniques</h3>
+<div class="grid2">
+<div class="cheat"><h4>Code-Level</h4>Control flow flattening<br>Opaque predicates<br>Dead code insertion<br>Instruction substitution<br>String encryption<br>API hashing (hash of API name instead of string)</div>
+<div class="cheat"><h4>Data-Level</h4>XOR encryption (single-byte, rolling, multi-key)<br>RC4/AES encrypted strings<br>Stack strings (char-by-char construction)<br>Base64 encoding<br>Custom encoding schemes<br>Environment-keyed decryption</div>
+</div></div>`,
+
+x86:`<h2>x86/x64 Assembly Reference</h2>
+<div class="card"><h3>Essential Instructions for RE</h3>
+<table>
+<tr><th>Category</th><th>Instruction</th><th>Meaning</th><th>RE Context</th></tr>
+<tr><td rowspan="3">Data Move</td><td><span class="ins">mov</span> <span class="reg">rax</span>, [<span class="reg">rbp</span>-8]</td><td>Load from stack</td><td>Local variable access</td></tr>
+<tr><td><span class="ins">lea</span> <span class="reg">rax</span>, [<span class="reg">rip</span>+offset]</td><td>Load effective address</td><td>PIC string/data reference</td></tr>
+<tr><td><span class="ins">xchg</span> <span class="reg">rax</span>, <span class="reg">rbx</span></td><td>Swap values</td><td>Sometimes NOP sled (xchg eax,eax)</td></tr>
+<tr><td rowspan="3">Control Flow</td><td><span class="ins">call</span> <span class="addr">0x401000</span></td><td>Call function</td><td>Direct function call</td></tr>
+<tr><td><span class="ins">call</span> [<span class="reg">rax</span>]</td><td>Indirect call</td><td>Virtual function / resolved API call</td></tr>
+<tr><td><span class="ins">jmp</span> [<span class="reg">rax</span>*8+table]</td><td>Jump table</td><td>Switch statement</td></tr>
+<tr><td rowspan="3">Stack</td><td><span class="ins">push</span> <span class="reg">rbp</span>; <span class="ins">mov</span> <span class="reg">rbp</span>,<span class="reg">rsp</span></td><td>Function prologue</td><td>Frame pointer setup</td></tr>
+<tr><td><span class="ins">sub</span> <span class="reg">rsp</span>, 0x40</td><td>Allocate stack space</td><td>Local variable space (0x40 = 16 vars)</td></tr>
+<tr><td><span class="ins">leave</span>; <span class="ins">ret</span></td><td>Function epilogue</td><td>Restore frame, return</td></tr>
+<tr><td rowspan="3">Comparison</td><td><span class="ins">test</span> <span class="reg">rax</span>, <span class="reg">rax</span></td><td>Test if zero</td><td>Null check (if rax == 0)</td></tr>
+<tr><td><span class="ins">cmp</span> <span class="reg">rax</span>, 0x10</td><td>Compare with value</td><td>Boundary check, switch case</td></tr>
+<tr><td><span class="ins">repne scasb</span></td><td>Scan string for byte</td><td>strlen() implementation</td></tr>
+</table></div>
+<div class="card"><h3>x64 Register Cheat Sheet</h3>
+<div class="code"><span class="comment">// 64-bit    32-bit   16-bit   8-bit (low/high)</span>
+<span class="reg">RAX</span>        <span class="reg">EAX</span>      <span class="reg">AX</span>       <span class="reg">AL</span>/<span class="reg">AH</span>     <span class="comment">// Return value, syscall number</span>
+<span class="reg">RBX</span>        <span class="reg">EBX</span>      <span class="reg">BX</span>       <span class="reg">BL</span>/<span class="reg">BH</span>     <span class="comment">// Callee-saved (preserved)</span>
+<span class="reg">RCX</span>        <span class="reg">ECX</span>      <span class="reg">CX</span>       <span class="reg">CL</span>/<span class="reg">CH</span>     <span class="comment">// 1st arg (Win), 4th arg (Linux), counter</span>
+<span class="reg">RDX</span>        <span class="reg">EDX</span>      <span class="reg">DX</span>       <span class="reg">DL</span>/<span class="reg">DH</span>     <span class="comment">// 2nd arg (Win), 3rd arg (Linux)</span>
+<span class="reg">RSI</span>        <span class="reg">ESI</span>      <span class="reg">SI</span>       <span class="reg">SIL</span>      <span class="comment">// 2nd arg (Linux), source index</span>
+<span class="reg">RDI</span>        <span class="reg">EDI</span>      <span class="reg">DI</span>       <span class="reg">DIL</span>      <span class="comment">// 1st arg (Linux), destination index</span>
+<span class="reg">RBP</span>        <span class="reg">EBP</span>      <span class="reg">BP</span>       <span class="reg">BPL</span>      <span class="comment">// Frame pointer (callee-saved)</span>
+<span class="reg">RSP</span>        <span class="reg">ESP</span>      <span class="reg">SP</span>       <span class="reg">SPL</span>      <span class="comment">// Stack pointer</span>
+<span class="reg">R8-R15</span>     <span class="reg">R8D-R15D</span> <span class="reg">R8W</span>      <span class="reg">R8B</span>      <span class="comment">// Additional GP registers (x64 only)</span>
+<span class="reg">RIP</span>        <span class="reg">EIP</span>      ---      ---      <span class="comment">// Instruction pointer</span></div></div>`,
+
+patterns:`<h2>Common RE Patterns</h2>
+<div class="card"><h3>Recognizing Code Constructs</h3>
+<div class="grid2">
+<div class="cheat"><h4>if/else</h4><div class="code"><span class="ins">cmp</span> <span class="reg">eax</span>, 5
+<span class="ins">jne</span> <span class="addr">else_branch</span>
+  <span class="comment">; if body</span>
+<span class="ins">jmp</span> <span class="addr">end_if</span>
+<span class="addr">else_branch:</span>
+  <span class="comment">; else body</span>
+<span class="addr">end_if:</span></div></div>
+<div class="cheat"><h4>for loop</h4><div class="code"><span class="ins">xor</span> <span class="reg">ecx</span>, <span class="reg">ecx</span>       <span class="comment">; i = 0</span>
+<span class="addr">loop_start:</span>
+<span class="ins">cmp</span> <span class="reg">ecx</span>, 10        <span class="comment">; i < 10</span>
+<span class="ins">jge</span> <span class="addr">loop_end</span>
+  <span class="comment">; loop body</span>
+<span class="ins">inc</span> <span class="reg">ecx</span>             <span class="comment">; i++</span>
+<span class="ins">jmp</span> <span class="addr">loop_start</span>
+<span class="addr">loop_end:</span></div></div>
+<div class="cheat"><h4>switch (jump table)</h4><div class="code"><span class="ins">cmp</span> <span class="reg">eax</span>, 5         <span class="comment">; max case</span>
+<span class="ins">ja</span> <span class="addr">default_case</span>
+<span class="ins">jmp</span> [<span class="reg">eax</span>*4+<span class="addr">table</span>]  <span class="comment">; indexed jump</span></div></div>
+<div class="cheat"><h4>Virtual function call (C++)</h4><div class="code"><span class="ins">mov</span> <span class="reg">rax</span>, [<span class="reg">rcx</span>]     <span class="comment">; vtable pointer</span>
+<span class="ins">call</span> [<span class="reg">rax</span>+0x18]    <span class="comment">; 4th vfunc</span>
+<span class="comment">; rcx = this pointer</span></div></div>
+<div class="cheat"><h4>XOR Decryption Loop</h4><div class="code"><span class="ins">lea</span> <span class="reg">rsi</span>, [encrypted]
+<span class="ins">mov</span> <span class="reg">ecx</span>, length
+<span class="addr">.loop:</span>
+<span class="ins">xor</span> byte [<span class="reg">rsi</span>], 0x41 <span class="comment">; XOR key</span>
+<span class="ins">inc</span> <span class="reg">rsi</span>
+<span class="ins">dec</span> <span class="reg">ecx</span>
+<span class="ins">jnz</span> <span class="addr">.loop</span></div></div>
+<div class="cheat"><h4>API Hashing (resolve by hash)</h4><div class="code"><span class="comment">; Walk PEB -> LDR -> module list</span>
+<span class="ins">mov</span> <span class="reg">rax</span>, gs:[0x60]  <span class="comment">; PEB</span>
+<span class="ins">mov</span> <span class="reg">rax</span>, [<span class="reg">rax</span>+0x18] <span class="comment">; PEB->Ldr</span>
+<span class="ins">mov</span> <span class="reg">rsi</span>, [<span class="reg">rax</span>+0x20] <span class="comment">; InMemoryOrder</span>
+<span class="comment">; Hash each export name, compare</span></div></div>
+</div></div>`,
+
+calling:`<h2>Calling Conventions</h2>
+<div class="card"><h3>x64 Calling Conventions</h3>
+<table>
+<tr><th>Convention</th><th>Arg 1</th><th>Arg 2</th><th>Arg 3</th><th>Arg 4</th><th>Arg 5+</th><th>Return</th><th>Caller Cleanup</th></tr>
+<tr><td style="color:var(--cyn)">Microsoft x64</td><td><span class="reg">RCX</span></td><td><span class="reg">RDX</span></td><td><span class="reg">R8</span></td><td><span class="reg">R9</span></td><td>Stack</td><td><span class="reg">RAX</span></td><td>Caller</td></tr>
+<tr><td style="color:var(--grn)">System V AMD64 (Linux)</td><td><span class="reg">RDI</span></td><td><span class="reg">RSI</span></td><td><span class="reg">RDX</span></td><td><span class="reg">RCX</span></td><td><span class="reg">R8</span>, <span class="reg">R9</span>, Stack</td><td><span class="reg">RAX</span></td><td>Caller</td></tr>
+<tr><td style="color:var(--org)">Linux Syscall</td><td><span class="reg">RDI</span></td><td><span class="reg">RSI</span></td><td><span class="reg">RDX</span></td><td><span class="reg">R10</span></td><td><span class="reg">R8</span>, <span class="reg">R9</span></td><td><span class="reg">RAX</span></td><td>N/A</td></tr>
+</table>
+<div style="margin-top:8px;font-size:10px;color:var(--t2)">Windows x64: Shadow space (32 bytes) always reserved on stack even for &lt;4 args. Linux: Red zone (128 bytes below RSP) available.</div>
+</div>
+<div class="card"><h3>x86 (32-bit) Calling Conventions</h3>
+<table>
+<tr><th>Convention</th><th>Args</th><th>Cleanup</th><th>Used By</th></tr>
+<tr><td>cdecl</td><td>Stack (right to left)</td><td>Caller</td><td>C default, most malware</td></tr>
+<tr><td>stdcall</td><td>Stack (right to left)</td><td>Callee</td><td>Win32 API</td></tr>
+<tr><td>fastcall</td><td>ECX, EDX, then stack</td><td>Callee</td><td>MSVC __fastcall</td></tr>
+<tr><td>thiscall</td><td>ECX=this, stack</td><td>Callee</td><td>C++ member functions (MSVC)</td></tr>
+</table></div>`,
+
+anti:`<h2>Anti-Analysis Techniques</h2>
+<div class="card"><h3>Anti-Debug Techniques</h3>
+<table>
+<tr><th>Technique</th><th>Method</th><th>Bypass</th></tr>
+<tr><td><span class="cmd">IsDebuggerPresent</span></td><td>Check PEB->BeingDebugged flag</td><td>Patch PEB flag, ScyllaHide</td></tr>
+<tr><td><span class="cmd">NtQueryInformationProcess</span></td><td>Check ProcessDebugPort (7)</td><td>Hook and return 0</td></tr>
+<tr><td><span class="cmd">CheckRemoteDebuggerPresent</span></td><td>Check for remote debugger</td><td>Hook NtQueryInformationProcess</td></tr>
+<tr><td>PEB->NtGlobalFlag</td><td>Check heap debug flags (0x70)</td><td>Clear flag at PEB+0x68/0xBC</td></tr>
+<tr><td>Timing checks</td><td>RDTSC, GetTickCount, QueryPerformanceCounter</td><td>Hook timing APIs, TitanHide</td></tr>
+<tr><td>Hardware breakpoint detection</td><td>Check DR0-DR3 via GetThreadContext</td><td>Clear debug registers</td></tr>
+<tr><td>INT 2D</td><td>Debugger swallows interrupt</td><td>Skip instruction in debugger</td></tr>
+<tr><td>TLS callbacks</td><td>Execute before main entry point</td><td>Break on TLS callback, analyze first</td></tr>
+<tr><td>Self-debugging</td><td>Attach to self, prevent other debuggers</td><td>Patch CreateProcess/DebugActiveProcess</td></tr>
+<tr><td>Exception-based</td><td>Use SEH to transfer control flow</td><td>Pass exceptions to application</td></tr>
+</table></div>
+<div class="card"><h3>Anti-VM / Anti-Sandbox</h3>
+<table>
+<tr><th>Check</th><th>What It Detects</th><th>Counter</th></tr>
+<tr><td>CPUID leaf 0x40000000</td><td>Hypervisor brand string</td><td>Modify CPUID returns</td></tr>
+<tr><td>Registry keys</td><td>VMware/VBox/QEMU services</td><td>Delete registry artifacts</td></tr>
+<tr><td>MAC address prefix</td><td>00:0C:29 (VMware), 08:00:27 (VBox)</td><td>Change MAC address</td></tr>
+<tr><td>Process names</td><td>vmtoolsd, VBoxService, sandboxie</td><td>Rename/hide processes</td></tr>
+<tr><td>File system</td><td>vmware.sys, VBoxGuest.sys</td><td>Remove/rename drivers</td></tr>
+<tr><td>User interaction</td><td>Mouse movement, click count, uptime</td><td>Simulate user activity</td></tr>
+<tr><td>Resolution/RAM</td><td>Low resolution, small RAM = sandbox</td><td>Increase VM resources</td></tr>
+<tr><td>Username/hostname</td><td>Default sandbox names (John, sandbox)</td><td>Use realistic names</td></tr>
+</table></div>`,
+
+malware:`<h2>Malware Taxonomy</h2>
+<div class="card"><h3>Malware Categories & Characteristics</h3>
+<table>
+<tr><th>Type</th><th>Primary Function</th><th>Notable Families</th><th>Key Indicators</th></tr>
+<tr><td style="color:var(--red)">Ransomware</td><td>Encrypt files for ransom</td><td>LockBit, BlackCat/ALPHV, Cl0p, Royal, Akira</td><td>Crypto APIs, file enumeration, shadow delete, ransom note</td></tr>
+<tr><td style="color:var(--org)">RAT</td><td>Remote access & control</td><td>Cobalt Strike, AsyncRAT, Quasar, DarkComet</td><td>C2 beaconing, keylogging, screen capture, file transfer</td></tr>
+<tr><td style="color:var(--pur)">Loader</td><td>Download & execute payloads</td><td>Emotet, QakBot, IcedID, Bumblebee</td><td>Network callbacks, process injection, payload dropping</td></tr>
+<tr><td style="color:var(--pink)">Infostealer</td><td>Steal credentials & data</td><td>RedLine, Raccoon, Vidar, LummaC2</td><td>Browser DB access, crypto wallet files, clipboard monitoring</td></tr>
+<tr><td style="color:var(--cyn)">Rootkit</td><td>Hide malicious activity</td><td>Necurs, TDL4, ZeroAccess, BlackLotus</td><td>Kernel hooks, DKOM, bootkits, driver signing bypass</td></tr>
+<tr><td style="color:var(--yel)">Wiper</td><td>Destroy data/systems</td><td>NotPetya, WhisperGate, CaddyWiper, AcidRain</td><td>MBR overwrite, file destruction, no recovery mechanism</td></tr>
+<tr><td style="color:var(--grn)">Backdoor</td><td>Persistent covert access</td><td>SunBurst, Regin, Duqu, Flame</td><td>Stealth C2, low-and-slow, modular architecture</td></tr>
+</table></div>`,
+
+shellcode:`<h2>Shellcode Analysis</h2>
+<div class="card"><h3>Common Shellcode Patterns</h3>
+<div class="cheat"><h4>PEB Walking (API Resolution)</h4><div class="code"><span class="comment">; Standard shellcode API resolution</span>
+<span class="ins">xor</span> <span class="reg">ecx</span>, <span class="reg">ecx</span>
+<span class="ins">mov</span> <span class="reg">eax</span>, fs:[<span class="reg">ecx</span>+0x30]   <span class="comment">; PEB (32-bit)</span>
+<span class="ins">mov</span> <span class="reg">eax</span>, [<span class="reg">eax</span>+0x0c]       <span class="comment">; PEB->Ldr</span>
+<span class="ins">mov</span> <span class="reg">esi</span>, [<span class="reg">eax</span>+0x14]       <span class="comment">; InMemoryOrderModuleList</span>
+<span class="ins">lodsd</span>                        <span class="comment">; First module (exe)</span>
+<span class="ins">xchg</span> <span class="reg">eax</span>, <span class="reg">esi</span>
+<span class="ins">lodsd</span>                        <span class="comment">; Second module (ntdll)</span>
+<span class="ins">mov</span> <span class="reg">ebx</span>, [<span class="reg">eax</span>+0x10]       <span class="comment">; ntdll base address</span>
+<span class="comment">; Then walk export table to find functions</span></div></div>
+<div class="cheat"><h4>Common Hash Algorithms</h4>
+<span style="color:var(--pink)">ROR13</span>: hash = (hash >> 13) | (hash << 19); hash += char<br>
+<span style="color:var(--cyn)">CRC32</span>: Standard CRC32 of function name<br>
+<span style="color:var(--org)">djb2</span>: hash = hash * 33 + char<br>
+<span style="color:var(--grn)">FNV-1a</span>: hash = (hash ^ char) * FNV_prime<br><br>
+Known hash databases: <span class="cmd">HashDB</span> IDA plugin, <span class="cmd">shellcode_hashes</span> by Mandiant
+</div></div>
+<div class="card"><h3>Shellcode Execution Methods</h3>
+<table>
+<tr><th>Method</th><th>Technique</th><th>Stealth Level</th></tr>
+<tr><td>VirtualAlloc + memcpy + call</td><td>Allocate RWX, copy, execute</td><td>Low (obvious RWX)</td></tr>
+<tr><td>CreateThread</td><td>New thread in current process</td><td>Low</td></tr>
+<tr><td>Callback functions</td><td>EnumWindows, CreateTimerQueueTimer, etc.</td><td>Medium (legitimate API)</td></tr>
+<tr><td>Fiber-based</td><td>ConvertThreadToFiber + CreateFiber</td><td>Medium</td></tr>
+<tr><td>APC injection</td><td>QueueUserAPC to alertable thread</td><td>High</td></tr>
+<tr><td>Syscall-based</td><td>Direct NT syscalls, no ntdll</td><td>High (bypasses hooks)</td></tr>
+<tr><td>Module stomping</td><td>Load legit DLL, overwrite .text</td><td>Very high</td></tr>
+</table></div>`,
+
+c2proto:`<h2>C2 Protocol Patterns</h2>
+<div class="card"><h3>C2 Communication Patterns</h3>
+<table>
+<tr><th>Protocol</th><th>Pattern</th><th>Detection</th><th>Examples</th></tr>
+<tr><td>HTTPS Beacon</td><td>Regular interval callbacks to static URI</td><td>JA3/JA3S fingerprinting, beacon analysis</td><td>Cobalt Strike, Sliver</td></tr>
+<tr><td>DNS Tunneling</td><td>Encoded data in subdomain queries</td><td>High query volume, entropy in subdomains</td><td>DNScat2, Cobalt Strike DNS</td></tr>
+<tr><td>Domain Fronting</td><td>CDN routing to hide true destination</td><td>SNI/Host header mismatch</td><td>APT29, Meek (Tor)</td></tr>
+<tr><td>Named Pipes</td><td>Local IPC for peer-to-peer C2</td><td>Unusual pipe names, cross-process pipes</td><td>Cobalt Strike SMB beacon</td></tr>
+<tr><td>DoH/DoT</td><td>DNS over HTTPS/TLS for covert DNS</td><td>Connections to known DoH providers</td><td>Godlua, DNSBotnet</td></tr>
+<tr><td>Social Media</td><td>Commands embedded in posts/images</td><td>Unusual social media API usage</td><td>HAMMERTOSS (Twitter), Turla (Instagram)</td></tr>
+</table></div>
+<div class="card"><h3>Cobalt Strike Indicators</h3>
+<div class="grid2">
+<div class="cheat"><h4>Network Signatures</h4>Default User-Agent strings<br>Cookie-based data exfil (metadata encoded)<br>/submit.php?id= URI pattern<br>JA3: varies by Malleable C2 profile<br>Default cert: 146473198 serial number</div>
+<div class="cheat"><h4>Host Artifacts</h4>Named pipes: \\.\pipe\msagent_*<br>Default sleep: 60 seconds<br>Beacon config in memory (XOR 0x2e or 0x69)<br>Service: "beacon" default name<br>Spawn-to: rundll32.exe default</div>
+</div></div>`,
+
+crypto:`<h2>Crypto Identification in Malware</h2>
+<div class="card"><h3>Crypto Constants & Signatures</h3>
+<table>
+<tr><th>Algorithm</th><th>Identifying Constants</th><th>Common Malware Use</th></tr>
+<tr><td>AES</td><td>S-box: 0x63, 0x7C, 0x77, 0x7B... (256 bytes)</td><td>Ransomware file encryption, C2 encryption</td></tr>
+<tr><td>RC4</td><td>256-byte key scheduling array (KSA)</td><td>String encryption, config encryption</td></tr>
+<tr><td>RSA</td><td>Large prime operations, PKCS padding</td><td>Ransomware key exchange</td></tr>
+<tr><td>ChaCha20</td><td>Constants: "expand 32-byte k" (0x61707865...)</td><td>Modern ransomware (faster than AES)</td></tr>
+<tr><td>MD5</td><td>Init: 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476</td><td>Hashing, integrity checks</td></tr>
+<tr><td>SHA-256</td><td>Init: 0x6A09E667, 0xBB67AE85, 0x3C6EF372...</td><td>Key derivation, integrity verification</td></tr>
+<tr><td>CRC32</td><td>Polynomial table (256 DWORDs)</td><td>API hashing, checksum verification</td></tr>
+</table>
+<div style="margin-top:8px;font-size:10px;color:var(--t2)">Tools: <span class="cmd">FindCrypt</span> (IDA), <span class="cmd">signsrch</span>, <span class="cmd">crypto_id</span> (Ghidra)</div></div>`,
+
+tools:`<h2>RE Tool Reference</h2>
+<div class="card"><h3>Essential Tools by Category</h3>
+<table>
+<tr><th>Category</th><th>Tool</th><th>Platform</th><th>Use Case</th></tr>
+<tr><td rowspan="3">Disassemblers</td><td><span class="cmd">IDA Pro</span></td><td>Win/Mac/Linux</td><td>Industry standard, best analysis features, FLIRT sigs</td></tr>
+<tr><td><span class="cmd">Ghidra</span></td><td>Cross-platform</td><td>Free (NSA), excellent decompiler, scripting</td></tr>
+<tr><td><span class="cmd">Binary Ninja</span></td><td>Cross-platform</td><td>Modern UI, IL-based analysis, great API</td></tr>
+<tr><td rowspan="3">Debuggers</td><td><span class="cmd">x64dbg</span></td><td>Windows</td><td>Open-source, plugin ecosystem, scriptable</td></tr>
+<tr><td><span class="cmd">WinDbg</span></td><td>Windows</td><td>Kernel debugging, crash analysis, TTD</td></tr>
+<tr><td><span class="cmd">GDB + pwndbg/GEF</span></td><td>Linux</td><td>Linux debugging, exploit development</td></tr>
+<tr><td rowspan="3">Dynamic Analysis</td><td><span class="cmd">Process Monitor</span></td><td>Windows</td><td>Registry, file, network, process activity</td></tr>
+<tr><td><span class="cmd">API Monitor</span></td><td>Windows</td><td>API call hooking and logging</td></tr>
+<tr><td><span class="cmd">strace / ltrace</span></td><td>Linux</td><td>System call and library call tracing</td></tr>
+<tr><td rowspan="3">Triage</td><td><span class="cmd">PE-bear / CFF Explorer</span></td><td>Windows</td><td>PE header analysis</td></tr>
+<tr><td><span class="cmd">DIE (Detect It Easy)</span></td><td>Cross-platform</td><td>Packer/compiler detection</td></tr>
+<tr><td><span class="cmd">FLOSS</span></td><td>Cross-platform</td><td>Automatic string deobfuscation (Mandiant)</td></tr>
+<tr><td rowspan="2">Network</td><td><span class="cmd">Wireshark</span></td><td>Cross-platform</td><td>Packet capture and protocol analysis</td></tr>
+<tr><td><span class="cmd">FakeNet-NG</span></td><td>Windows</td><td>Simulate network services for dynamic analysis</td></tr>
+<tr><td rowspan="2">Sandbox</td><td><span class="cmd">ANY.RUN</span></td><td>Cloud</td><td>Interactive malware sandbox</td></tr>
+<tr><td><span class="cmd">CAPE Sandbox</span></td><td>Self-hosted</td><td>Automated analysis with config extraction</td></tr>
+</table></div>`,
+
+workflow:`<h2>Analysis Workflow</h2>
+<div class="card"><h3>Malware Analysis Methodology</h3>
+<div class="cheat"><h4>Phase 1: Triage (5-10 min)</h4>
+File type identification (<span class="cmd">file</span>, <span class="cmd">DIE</span>)<br>
+Hash lookup (VirusTotal, MalwareBazaar)<br>
+String extraction (<span class="cmd">FLOSS</span>, <span class="cmd">strings</span>)<br>
+Import analysis (suspicious API combinations)<br>
+Entropy analysis (<span class="cmd">binwalk -E</span>)<br>
+Packer detection (<span class="cmd">DIE</span>, <span class="cmd">Exeinfo PE</span>)</div>
+<div class="cheat"><h4>Phase 2: Static Analysis (30-60 min)</h4>
+Load in IDA/Ghidra, identify key functions<br>
+Analyze imports and cross-references<br>
+Identify crypto constants (<span class="cmd">FindCrypt</span>)<br>
+Map string references to functionality<br>
+Identify anti-analysis techniques<br>
+Document C2 configuration if found</div>
+<div class="cheat"><h4>Phase 3: Dynamic Analysis (30-60 min)</h4>
+Execute in isolated sandbox<br>
+Monitor with ProcMon, API Monitor<br>
+Capture network traffic (Wireshark + FakeNet)<br>
+Track file system and registry changes<br>
+Debug critical functions (x64dbg/WinDbg)<br>
+Unpack if needed (ESP trick, memory dumps)</div>
+<div class="cheat"><h4>Phase 4: Deep Dive (hours-days)</h4>
+Full decompilation of key modules<br>
+Protocol reverse engineering<br>
+Crypto analysis and key extraction<br>
+Capability mapping to ATT&CK<br>
+IOC extraction and YARA rule creation<br>
+Report writing and intelligence sharing</div></div>`,
+
+yara:`<h2>YARA Rule Reference</h2>
+<div class="card"><h3>YARA Rule Structure</h3>
+<div class="code"><span style="color:var(--pink)">import</span> "pe"
+<span style="color:var(--pink)">import</span> "math"
+
+<span style="color:var(--cyn)">rule</span> <span style="color:var(--grn)">Suspicious_PE_Packed</span> {
+    <span style="color:var(--pur)">meta:</span>
+        author = "Analyst"
+        description = "Detects potentially packed PE files"
+        severity = "medium"
+        reference = "internal"
+
+    <span style="color:var(--pur)">strings:</span>
+        $mz = "MZ"
+        $upx = "UPX" <span style="color:var(--blue)">ascii wide</span>
+        $hex_pattern = { 4D 5A 90 00 03 00 00 00 }
+        $regex = <span style="color:var(--org)">/[A-Z]{3}[0-9]{2}\\.(dll|exe)/i</span>
+
+    <span style="color:var(--pur)">condition:</span>
+        $mz at 0 and
+        (
+            $upx or
+            pe.number_of_sections < 3 or
+            math.entropy(0, filesize) > 7.0 or
+            pe.imports("kernel32.dll", "VirtualAlloc") and
+            pe.imports("kernel32.dll", "VirtualProtect") and
+            pe.number_of_imports < 10
+        )
+}</div></div>
+<div class="card"><h3>YARA Quick Reference</h3>
+<div class="grid2">
+<div class="cheat"><h4>String Modifiers</h4>
+<span class="cmd">ascii</span> - ASCII string (default)<br>
+<span class="cmd">wide</span> - UTF-16LE (Windows wide strings)<br>
+<span class="cmd">nocase</span> - Case insensitive<br>
+<span class="cmd">fullword</span> - Match whole words only<br>
+<span class="cmd">xor</span> - Match XOR-encoded (all keys)<br>
+<span class="cmd">xor(0x01-0xFF)</span> - XOR range<br>
+<span class="cmd">base64</span> - Match base64-encoded</div>
+<div class="cheat"><h4>Condition Operators</h4>
+<span class="cmd">any of ($s*)</span> - Any string starting with $s<br>
+<span class="cmd">all of them</span> - All strings must match<br>
+<span class="cmd">3 of ($a, $b, $c, $d)</span> - At least 3<br>
+<span class="cmd">#s > 5</span> - String appears >5 times<br>
+<span class="cmd">@s[1]</span> - Offset of 1st occurrence<br>
+<span class="cmd">$s in (0..1024)</span> - In byte range<br>
+<span class="cmd">filesize < 1MB</span> - Size constraint</div>
+</div></div>`
+};
+
+function show(id){
+  document.getElementById('content').innerHTML=S[id]||'<p>Section not found</p>';
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(event&&event.target)event.target.classList.add('active');
+}
+document.getElementById('content').innerHTML=S.pe;
+</script>
+</body>
+</html>

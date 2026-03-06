@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APT Tracker & Campaign Intelligence</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1a2332;--surface3:#243044;--accent:#ef4444;--accent2:#f97316;--accent3:#eab308;--green:#22c55e;--blue:#3b82f6;--purple:#a855f7;--cyan:#06b6d4;--pink:#ec4899;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:#1e293b}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;height:100vh;overflow:hidden}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+.sidebar{width:260px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:20px;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-size:16px;color:var(--accent);display:flex;align-items:center;gap:8px}
+.sidebar-header h1 span{font-size:20px}
+.sidebar-header p{font-size:11px;color:var(--text3);margin-top:4px}
+.nav{flex:1;overflow-y:auto;padding:8px}
+.nav-section{font-size:10px;text-transform:uppercase;color:var(--text3);padding:12px 12px 4px;letter-spacing:1px;font-weight:600}
+.nav-item{padding:8px 12px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;display:flex;align-items:center;gap:8px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff}
+.nav-item .icon{width:18px;text-align:center;font-size:14px}
+
+.main{flex:1;overflow-y:auto;padding:32px 40px}
+.section{display:none;max-width:1200px}
+.section.active{display:block}
+.section h2{font-size:24px;margin-bottom:6px}
+.section .subtitle{color:var(--text3);font-size:13px;margin-bottom:24px}
+h3{font-size:17px;color:var(--accent2);margin:24px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+h4{font-size:14px;color:var(--cyan);margin:16px 0 8px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px}
+.card-title{font-size:15px;font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+
+pre{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px;font-size:12.5px;line-height:1.6;overflow-x:auto;margin:8px 0;font-family:'Cascadia Code','Fira Code',monospace}
+code{font-family:'Cascadia Code','Fira Code',monospace;font-size:12.5px}
+
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:13px}
+th{background:var(--surface2);padding:10px 12px;text-align:left;font-weight:600;color:var(--text);border:1px solid var(--border)}
+td{padding:9px 12px;border:1px solid var(--border);color:var(--text2);vertical-align:top}
+tr:hover td{background:rgba(255,255,255,.02)}
+
+.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;display:inline-block}
+.badge-nation{background:rgba(239,68,68,.15);color:var(--accent)}
+.badge-crime{background:rgba(168,85,247,.15);color:var(--purple)}
+.badge-hack{background:rgba(6,182,212,.15);color:var(--cyan)}
+
+.diagram{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:20px;margin:12px 0;font-family:monospace;font-size:12px;line-height:1.5;color:var(--cyan);white-space:pre;overflow-x:auto}
+.note{background:rgba(59,130,246,.1);border-left:3px solid var(--blue);padding:12px 16px;border-radius:0 6px 6px 0;margin:10px 0;font-size:13px;color:var(--text2)}
+.warn{background:rgba(239,68,68,.1);border-left:3px solid var(--accent);padding:12px 16px;border-radius:0 6px 6px 0;margin:10px 0;font-size:13px}
+
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr}}
+
+/* APT cards */
+.apt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px;margin:12px 0}
+.apt-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;cursor:pointer;transition:all .2s}
+.apt-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.apt-card.expanded{grid-column:1/-1}
+.apt-name{font-size:15px;font-weight:700;margin-bottom:4px}
+.apt-aliases{font-size:11px;color:var(--text3);margin-bottom:8px}
+.apt-meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.apt-detail{display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:13px}
+.apt-card.expanded .apt-detail{display:block}
+.apt-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
+.tag{font-size:10px;padding:2px 8px;border-radius:4px;background:var(--surface2);color:var(--text2)}
+
+/* Search & Filter */
+.search-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.search-input{flex:1;min-width:200px;padding:8px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;outline:none}
+.search-input:focus{border-color:var(--blue)}
+.filter-btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:12px;transition:all .15s}
+.filter-btn:hover{background:var(--surface2)}
+.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* Timeline */
+.timeline{position:relative;padding-left:30px;margin:16px 0}
+.timeline::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--border)}
+.timeline-item{position:relative;margin-bottom:20px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px}
+.timeline-item::before{content:'';position:absolute;left:-24px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--accent);border:2px solid var(--bg)}
+.timeline-date{font-size:11px;color:var(--text3);margin-bottom:4px}
+.timeline-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.timeline-desc{font-size:12px;color:var(--text2)}
+
+/* Diamond model */
+.diamond{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto auto;gap:8px;max-width:500px;margin:16px auto;text-align:center}
+.diamond-node{background:var(--surface);border:1px solid var(--border);padding:12px;border-radius:8px}
+.diamond-node.top{grid-column:2;grid-row:1}
+.diamond-node.left{grid-column:1;grid-row:2}
+.diamond-node.right{grid-column:3;grid-row:2}
+.diamond-node.bottom{grid-column:2;grid-row:3}
+.diamond-label{font-size:10px;text-transform:uppercase;color:var(--text3);margin-bottom:4px}
+.diamond-value{font-size:13px;font-weight:600}
+
+.tabs{display:flex;gap:4px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:6px 16px;border-radius:6px;background:var(--surface2);color:var(--text2);cursor:pointer;font-size:12px;border:1px solid var(--border);transition:all .15s}
+.tab:hover{background:var(--surface3)}
+.tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.tab-content{display:none}.tab-content.active{display:block}
+
+.comment{color:#6a9955}.keyword{color:#569cd6}.string{color:#ce9178}
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h1><span>🎯</span> APT Tracker</h1>
+    <p>Campaign Intelligence Dashboard</p>
+  </div>
+  <nav class="nav">
+    <div class="nav-section">Tracking</div>
+    <div class="nav-item active" data-section="apt-database"><span class="icon">📊</span>APT Database</div>
+    <div class="nav-item" data-section="campaigns"><span class="icon">⚔️</span>Notable Campaigns</div>
+    <div class="nav-item" data-section="diamond"><span class="icon">💎</span>Diamond Model Analysis</div>
+    <div class="nav-section">Intelligence</div>
+    <div class="nav-item" data-section="ttp-mapping"><span class="icon">🗺️</span>TTP Mapping & Trends</div>
+    <div class="nav-item" data-section="ioc-analysis"><span class="icon">🔍</span>IOC Analysis Framework</div>
+    <div class="nav-item" data-section="attribution"><span class="icon">🏷️</span>Attribution Methodology</div>
+    <div class="nav-section">Research</div>
+    <div class="nav-item" data-section="malware-families"><span class="icon">🦠</span>Malware Family Tracker</div>
+    <div class="nav-item" data-section="infrastructure"><span class="icon">🌐</span>Infrastructure Patterns</div>
+    <div class="nav-item" data-section="collection"><span class="icon">📡</span>Collection & Sources</div>
+    <div class="nav-section">Microsoft Context</div>
+    <div class="nav-item" data-section="msft-naming"><span class="icon">🪟</span>Microsoft Threat Actors</div>
+    <div class="nav-item" data-section="defender-ti"><span class="icon">🛡️</span>Defender TI Integration</div>
+  </nav>
+</div>
+
+<div class="main">
+<!-- APT DATABASE -->
+<div class="section active" id="apt-database">
+  <h2>APT Database</h2>
+  <p class="subtitle">Major threat actor profiles — click any card to expand</p>
+
+  <div class="search-bar">
+    <input class="search-input" id="apt-search" placeholder="Search by name, alias, country, or target sector..." oninput="filterAPTs()">
+    <button class="filter-btn active" data-filter="all" onclick="setFilter(this)">All</button>
+    <button class="filter-btn" data-filter="russia" onclick="setFilter(this)">Russia</button>
+    <button class="filter-btn" data-filter="china" onclick="setFilter(this)">China</button>
+    <button class="filter-btn" data-filter="iran" onclick="setFilter(this)">Iran</button>
+    <button class="filter-btn" data-filter="dprk" onclick="setFilter(this)">DPRK</button>
+    <button class="filter-btn" data-filter="crime" onclick="setFilter(this)">eCrime</button>
+  </div>
+
+  <div class="apt-grid" id="apt-grid"></div>
+</div>
+
+<!-- CAMPAIGNS -->
+<div class="section" id="campaigns">
+  <h2>Notable Campaigns & Operations</h2>
+  <p class="subtitle">Significant cyber operations and their analysis</p>
+
+  <h3>Major Campaign Timeline</h3>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-date">Dec 2020 — Discovered</div>
+      <div class="timeline-title">SolarWinds / SUNBURST (APT29 / Cozy Bear)</div>
+      <div class="timeline-desc">Supply chain compromise of SolarWinds Orion. Trojanized update (SUNBURST) deployed to ~18,000 orgs. TEARDROP & RAINDROP secondary payloads. Targeted US government agencies, Microsoft, FireEye. Demonstrated advanced OPSEC: DGA C2, steganography, SAML token forging (GoldenSAML).</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-date">2021 — Ongoing</div>
+      <div class="timeline-title">Hafnium / ProxyLogon & ProxyShell (HAFNIUM)</div>
+      <div class="timeline-desc">Multiple Exchange Server zero-day chains. ProxyLogon (CVE-2021-26855 + CVE-2021-27065): SSRF → arbitrary file write → webshell. ProxyShell: Pre-auth RCE chain. Exploited by multiple Chinese APTs, then rapidly adopted by ransomware operators. Mass exploitation event.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-date">2022</div>
+      <div class="timeline-title">Ukraine Wiper Campaigns (Sandworm / Voodoo Bear)</div>
+      <div class="timeline-desc">Series of destructive wiper malware: WhisperGate, HermeticWiper, IsaacWiper, CaddyWiper, Industroyer2. Timed with kinetic military operations. Industroyer2 targeted Ukrainian power grid (ICS/SCADA). Combination of wipers, ransomware decoys, and supply chain compromise.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-date">2023</div>
+      <div class="timeline-title">Volt Typhoon — Living off the Land (China)</div>
+      <div class="timeline-desc">Chinese state actor targeting US critical infrastructure. Minimal malware — extensive use of LOLBins (ntdsutil, netsh, PowerShell). Long-term access to telecom, energy, water sectors. Focus on pre-positioning for potential conflict scenarios. Heavy use of compromised SOHO routers as ORBs (operational relay boxes).</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-date">2023</div>
+      <div class="timeline-title">Storm-0558 — Microsoft Cloud Compromise</div>
+      <div class="timeline-desc">Chinese threat actor obtained Microsoft consumer signing key. Forged Azure AD tokens to access email of ~25 organizations including US government. Exploited validation flaw accepting consumer keys for enterprise. Led to major Microsoft security overhaul (Secure Future Initiative).</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-date">2023-2024</div>
+      <div class="timeline-title">Midnight Blizzard — Microsoft Corporate Compromise (APT29)</div>
+      <div class="timeline-desc">Password spray against legacy non-MFA test tenant. Pivoted via OAuth app to access executive email. Exfiltrated source code repositories. Attempted to use stolen secrets for further access. Demonstrated risk of legacy configurations and OAuth app abuse.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-date">2024</div>
+      <div class="timeline-title">Salt Typhoon — Telecom Infiltration (China)</div>
+      <div class="timeline-desc">Massive compromise of US telecom providers (AT&T, Verizon, others). Accessed lawful intercept systems and call metadata. Targeted specific government officials' communications. Long-duration access measured in months. One of the largest telecom espionage operations ever disclosed.</div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-date">2024-2025</div>
+      <div class="timeline-title">Scattered Spider / Octo Tempest — Social Engineering</div>
+      <div class="timeline-desc">English-speaking threat actors using advanced social engineering. SIM swapping, helpdesk manipulation, MFA fatigue. Targeted major enterprises (MGM, Caesars, others). Combined social engineering with technical sophistication. Affiliate model with ALPHV/BlackCat ransomware.</div>
+    </div>
+  </div>
+
+  <h3>Campaign Analysis Template</h3>
+  <div class="card">
+    <div class="card-title">Structured Campaign Report Format</div>
+<pre><span class="comment">Campaign Analysis Report</span>
+═══════════════════════
+<span class="keyword">Campaign Name:</span>     [Name / Operation codename]
+<span class="keyword">Attribution:</span>       [APT group / Confidence level (low/medium/high)]
+<span class="keyword">Timeframe:</span>         [First observed — Last observed]
+<span class="keyword">Motivation:</span>        [Espionage / Destruction / Financial / Hacktivism]
+<span class="keyword">Target Profile:</span>    [Sectors, geographies, specific orgs]
+
+<span class="keyword">Kill Chain Mapping:</span>
+  Recon:           [Methods: OSINT, scanning, social media]
+  Weaponization:   [Malware used, exploits leveraged]
+  Delivery:        [Spearphish, watering hole, supply chain]
+  Exploitation:    [CVEs, zero-days, social engineering]
+  Installation:    [Persistence mechanisms]
+  C2:              [Infrastructure, protocols, evasion]
+  Actions:         [Data exfil, destruction, lateral movement]
+
+<span class="keyword">Diamond Model:</span>
+  Adversary:       [Group, sub-group, operators]
+  Capability:      [Tools, malware, exploits]
+  Infrastructure:  [Domains, IPs, certificates]
+  Victim:          [Target characterization]
+
+<span class="keyword">IOCs:</span>              [Hashes, domains, IPs, YARA rules]
+<span class="keyword">MITRE Mapping:</span>     [Technique IDs with context]
+<span class="keyword">Detection:</span>         [Sigma rules, KQL queries, behavioral indicators]
+<span class="keyword">Recommendations:</span>  [Defensive actions, hunting queries]</pre>
+  </div>
+</div>
+
+<!-- DIAMOND MODEL -->
+<div class="section" id="diamond">
+  <h2>Diamond Model Analysis</h2>
+  <p class="subtitle">Structured intrusion analysis using the Diamond Model</p>
+
+  <h3>The Diamond Model</h3>
+  <div class="diagram">                        ┌─────────────┐
+                        │  ADVERSARY  │
+                        │ Who is the  │
+                        │ threat actor│
+                        └──────┬──────┘
+                               │
+              Social-Political │ (motivation, targeting)
+                               │
+         ┌─────────────┐───────┼───────┌─────────────┐
+         │ CAPABILITY  │       │       │ INFRASTRUC- │
+         │ Tools, TTPs,│───────┼───────│ TURE        │
+         │ malware,    │  Technical    │ Domains,IPs,│
+         │ exploits    │   Axis       │ certs, C2   │
+         └─────────────┘       │       └─────────────┘
+                               │
+                               │
+                        ┌──────┴──────┐
+                        │   VICTIM    │
+                        │ Target org, │
+                        │ persona,    │
+                        │ vulnerab.   │
+                        └─────────────┘
+
+  Axes:
+  ═ Technical Axis:   Capability ←→ Infrastructure (tools connect to infra)
+  ║ Social-Political: Adversary ←→ Victim (motivation drives targeting)
+
+  Meta-Features:
+  • Timestamp    — When did each event occur?
+  • Phase        — Kill chain phase
+  • Result       — Success/failure/unknown
+  • Direction    — Adversary→Victim, Victim→Adversary, Bidirectional
+  • Methodology  — General class of activity
+  • Resources    — What was required (cost, skill, time)</div>
+
+  <h3>Diamond Model — Pivot Analysis</h3>
+  <div class="card">
+    <table>
+      <tr><th>Starting Point</th><th>Pivot To</th><th>Method</th><th>Example</th></tr>
+      <tr><td>Infrastructure (IP)</td><td>Other victims</td><td>Passive DNS, scan data</td><td>Same C2 IP seen targeting multiple orgs</td></tr>
+      <tr><td>Infrastructure (domain)</td><td>Adversary infra</td><td>WHOIS, registrar patterns</td><td>Same registrant email across domains</td></tr>
+      <tr><td>Capability (malware hash)</td><td>Infrastructure</td><td>Sandbox C2 extraction</td><td>Malware config reveals C2 domains</td></tr>
+      <tr><td>Capability (malware family)</td><td>Adversary</td><td>Code similarity, TTPs</td><td>Shared codebase links campaigns</td></tr>
+      <tr><td>Victim (sector)</td><td>Adversary intent</td><td>Targeting analysis</td><td>Defense sector → nation-state espionage</td></tr>
+      <tr><td>Adversary (known group)</td><td>Future targets</td><td>Historical targeting</td><td>APT28 historically targets NATO</td></tr>
+      <tr><td>Infrastructure (cert)</td><td>Related infra</td><td>Certificate transparency</td><td>Same self-signed cert across IPs</td></tr>
+      <tr><td>Capability (exploit)</td><td>Adversary tier</td><td>Capability assessment</td><td>Zero-day use → well-resourced actor</td></tr>
+    </table>
+  </div>
+
+  <h3>Activity Grouping & Clustering</h3>
+  <div class="card">
+<pre><span class="comment">Activity Thread:
+  A sequence of events linked by at least one shared Diamond vertex.
+  Thread = Event₁ → Event₂ → Event₃ ... (shared adversary, infra, or capability)
+
+Activity Group:
+  Cluster of activity threads with shared features.
+  Used for campaign-level analysis and actor tracking.
+
+Clustering Approaches:</span>
+
+<span class="keyword">Adversary-Centric Grouping:</span>
+  Group all activities attributed to same actor
+  Risk: Attribution errors cascade across entire group
+  Use: When attribution confidence is high
+
+<span class="keyword">Capability-Centric Grouping:</span>
+  Group by shared tools/malware/techniques
+  Risk: Tools can be shared, sold, or false-flagged
+  Use: When unique custom tooling is observed
+
+<span class="keyword">Infrastructure-Centric Grouping:</span>
+  Group by shared C2, hosting, domains
+  Risk: Shared hosting, bulletproof hosts used by multiple actors
+  Use: When infrastructure is unique/custom
+
+<span class="keyword">Victim-Centric Grouping:</span>
+  Group by common targeting patterns
+  Risk: Multiple actors target same sectors
+  Use: When defending specific sector/org</pre>
+  </div>
+</div>
+
+<!-- TTP MAPPING -->
+<div class="section" id="ttp-mapping">
+  <h2>TTP Mapping & Trends</h2>
+  <p class="subtitle">MITRE ATT&CK mapping patterns across APT groups</p>
+
+  <h3>Most Common APT Techniques (2023-2025)</h3>
+  <table>
+    <tr><th>Technique</th><th>ATT&CK ID</th><th>Used By</th><th>Trend</th></tr>
+    <tr><td>Phishing: Spearphishing Attachment</td><td>T1566.001</td><td>Nearly all APTs</td><td>Evolving (QR codes, OneNote, HTML smuggling)</td></tr>
+    <tr><td>Exploitation of Public-Facing App</td><td>T1190</td><td>Volt Typhoon, HAFNIUM, multiple</td><td>↑ Increasing (VPN/firewall zero-days)</td></tr>
+    <tr><td>Valid Accounts</td><td>T1078</td><td>APT29, Storm-0558, Scattered Spider</td><td>↑ Major trend (credential theft, token forging)</td></tr>
+    <tr><td>Command & Scripting Interpreter</td><td>T1059</td><td>Most APTs</td><td>→ Stable (PowerShell, cmd, Python)</td></tr>
+    <tr><td>OS Credential Dumping</td><td>T1003</td><td>APT28, APT29, Lazarus</td><td>→ Evolving (LSASS alternatives)</td></tr>
+    <tr><td>Proxy: External Proxy / ORBs</td><td>T1090.002</td><td>Chinese APTs (Volt/Salt Typhoon)</td><td>↑ Major trend (compromised routers)</td></tr>
+    <tr><td>Ingress Tool Transfer</td><td>T1105</td><td>Most APTs</td><td>→ Stable</td></tr>
+    <tr><td>Remote Services (RDP, SSH, SMB)</td><td>T1021</td><td>Most APTs</td><td>→ Stable</td></tr>
+    <tr><td>Impair Defenses: Disable Tools</td><td>T1562.001</td><td>Sandworm, ransomware actors</td><td>↑ BYOVD trend (bring vulnerable driver)</td></tr>
+    <tr><td>Data from Cloud Storage</td><td>T1530</td><td>APT29, Storm-0558</td><td>↑ Cloud focus</td></tr>
+  </table>
+
+  <h3>Emerging TTP Trends</h3>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title" style="color:var(--accent)">Living-off-the-Land (LOTL)</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px">Nation-state actors increasingly avoid custom malware in favor of built-in OS tools.</p>
+      <table>
+        <tr><th>LOLBin</th><th>Abuse</th></tr>
+        <tr><td>ntdsutil.exe</td><td>AD database (NTDS.dit) extraction</td></tr>
+        <tr><td>netsh.exe</td><td>Port forwarding, firewall changes</td></tr>
+        <tr><td>certutil.exe</td><td>Download files, encode/decode</td></tr>
+        <tr><td>wmic.exe</td><td>Recon, lateral movement</td></tr>
+        <tr><td>PowerShell</td><td>Everything (encoded commands)</td></tr>
+        <tr><td>reg.exe</td><td>SAM/SECURITY hive export</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title" style="color:var(--accent)">Edge Device Exploitation</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:8px">VPN appliances, firewalls, and routers are prime initial access targets.</p>
+      <table>
+        <tr><th>Target</th><th>Example CVEs</th></tr>
+        <tr><td>Ivanti/Pulse Secure VPN</td><td>CVE-2023-46805, CVE-2024-21887</td></tr>
+        <tr><td>Fortinet FortiGate</td><td>CVE-2022-42475, CVE-2023-27997</td></tr>
+        <tr><td>Citrix NetScaler</td><td>CVE-2023-3519 (CitrixBleed)</td></tr>
+        <tr><td>Palo Alto PAN-OS</td><td>CVE-2024-3400</td></tr>
+        <tr><td>SOHO Routers</td><td>Used as ORB infrastructure</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h3>TTP Comparison: Russia vs China vs DPRK vs Iran</h3>
+  <table>
+    <tr><th>Aspect</th><th>Russia (SVR/GRU)</th><th>China (MSS/PLA)</th><th>DPRK (RGB)</th><th>Iran (MOIS/IRGC)</th></tr>
+    <tr><td>Primary Goal</td><td>Espionage + Disruption</td><td>Espionage + IP Theft + Pre-positioning</td><td>Financial Theft + Espionage</td><td>Espionage + Retaliation</td></tr>
+    <tr><td>Initial Access</td><td>Spearphish, supply chain, cred theft</td><td>N-day exploits, edge devices, LOTL</td><td>Social engineering, supply chain, crypto</td><td>Spearphish, web exploits, VPN exploits</td></tr>
+    <tr><td>Stealth</td><td>Very high (APT29), moderate (APT28)</td><td>Very high (Volt Typhoon LOTL)</td><td>Moderate (improving)</td><td>Moderate</td></tr>
+    <tr><td>Custom Tooling</td><td>Extensive (SUNBURST, custom implants)</td><td>Mix (some custom, heavy LOTL)</td><td>Custom (BLINDINGCAN, AppleJeus)</td><td>Moderate (MuddyC2Go, custom)</td></tr>
+    <tr><td>Destructive</td><td>Yes (Sandworm wipers)</td><td>Rare (pre-positioning focus)</td><td>Occasionally (DarkSeoul)</td><td>Yes (Shamoon, wipers)</td></tr>
+    <tr><td>Cloud Focus</td><td>High (token forging, OAuth)</td><td>Growing (Storm-0558)</td><td>Moderate</td><td>Growing</td></tr>
+  </table>
+</div>
+
+<!-- IOC ANALYSIS -->
+<div class="section" id="ioc-analysis">
+  <h2>IOC Analysis Framework</h2>
+  <p class="subtitle">Indicator processing, enrichment, and correlation</p>
+
+  <h3>Pyramid of Pain</h3>
+  <div class="diagram">                    ╱╲
+                   ╱    ╲         TTPs (Tactics, Techniques, Procedures)
+                  ╱ TOUGH ╲       ← Hardest for adversary to change
+                 ╱──────────╲     Detection = behavioral, highest value
+                ╱            ╲
+               ╱  Challenging  ╲   Tools (malware families, custom tools)
+              ╱────────────────╲  ← Requires retooling
+             ╱                  ╲
+            ╱    Annoying        ╲  Network/Host Artifacts
+           ╱──────────────────────╲ (URI patterns, C2 protocols, mutexes)
+          ╱                        ╲
+         ╱      Simple              ╲ Domain Names
+        ╱────────────────────────────╲ ← Easy to register new ones
+       ╱                              ╲
+      ╱        Easy                    ╲ IP Addresses
+     ╱──────────────────────────────────╲ ← Trivial to change
+    ╱                                    ╲
+   ╱         Trivial                      ╲ Hash Values (file hashes)
+  ╱────────────────────────────────────────╲ ← One-bit change = new hash
+ ╱──────────────────────────────────────────╲
+
+ Investment strategy: Focus detection at TOP of pyramid
+ IOC feeds give you the bottom; behavioral detection gives you the top.</div>
+
+  <h3>IOC Types & Analysis</h3>
+  <table>
+    <tr><th>IOC Type</th><th>Sources</th><th>Enrichment</th><th>Shelf Life</th></tr>
+    <tr><td>File Hashes (MD5/SHA256)</td><td>Sandbox, AV, IR</td><td>VT, MalwareBazaar, YARA match</td><td>Hours-Days (recompile)</td></tr>
+    <tr><td>IP Addresses</td><td>Network logs, sandbox</td><td>Whois, ASN, geolocation, reputation</td><td>Hours-Weeks</td></tr>
+    <tr><td>Domains</td><td>DNS logs, sandbox, CT logs</td><td>WHOIS, pDNS, registration patterns</td><td>Days-Months</td></tr>
+    <tr><td>URLs</td><td>Proxy logs, email headers</td><td>URL reputation, content analysis</td><td>Hours-Days</td></tr>
+    <tr><td>Email Addresses</td><td>Phishing analysis</td><td>Breach databases, OSINT</td><td>Weeks-Months</td></tr>
+    <tr><td>SSL Certificates</td><td>CT logs, scanning</td><td>Subject, issuer, serial patterns</td><td>Months (until revoked)</td></tr>
+    <tr><td>YARA Rules</td><td>Malware analysis</td><td>Retrohunt, file scanning</td><td>Months-Years (behavioral)</td></tr>
+    <tr><td>Behavioral (TTPs)</td><td>IR, threat research</td><td>ATT&CK mapping, detection rules</td><td>Months-Years</td></tr>
+  </table>
+
+  <h3>IOC Enrichment Workflow</h3>
+  <div class="card">
+<pre><span class="comment"># Automated IOC enrichment pipeline</span>
+
+<span class="keyword">1. Ingest:</span> Receive IOC (hash, IP, domain, URL)
+    │
+<span class="keyword">2. Validate:</span> Format check, defang, dedup
+    │  └── Strip [.] → ., hxxp → http, etc.
+    │
+<span class="keyword">3. Classify:</span> Determine IOC type
+    │  └── Hash (MD5/SHA1/SHA256), IPv4/v6, FQDN, URL, Email
+    │
+<span class="keyword">4. Enrich:</span> Query multiple sources
+    │  ├── VirusTotal (detections, relationships, behavior)
+    │  ├── Passive DNS (domain ↔ IP history)
+    │  ├── WHOIS (registration, registrant)
+    │  ├── Shodan/Censys (open ports, services, certs)
+    │  ├── Threat intel feeds (known bad, campaigns)
+    │  ├── GeoIP (location, ASN, ISP)
+    │  └── Internal telemetry (seen in our environment?)
+    │
+<span class="keyword">5. Correlate:</span> Link related IOCs
+    │  ├── Same infrastructure cluster?
+    │  ├── Same malware family?
+    │  ├── Same campaign / threat actor?
+    │  └── Diamond Model vertex alignment
+    │
+<span class="keyword">6. Score:</span> Confidence + Severity
+    │  ├── How many sources confirm?
+    │  ├── How fresh is the IOC?
+    │  ├── Context (targeted vs commodity)?
+    │  └── Relevance to our environment?
+    │
+<span class="keyword">7. Action:</span> Block, Alert, Hunt, or Monitor
+    └── Deploy to detection systems (SIEM, EDR, firewall)</pre>
+  </div>
+
+  <h3>STIX/TAXII Intelligence Sharing</h3>
+  <div class="card">
+    <div class="card-title">STIX 2.1 Domain Objects</div>
+    <table>
+      <tr><th>Object</th><th>Purpose</th><th>Key Fields</th></tr>
+      <tr><td>Attack Pattern</td><td>TTP description</td><td>ATT&CK technique mapping</td></tr>
+      <tr><td>Campaign</td><td>Named operation</td><td>First/last seen, objectives</td></tr>
+      <tr><td>Indicator</td><td>Observable IOC</td><td>Pattern (STIX patterning), valid_from/until</td></tr>
+      <tr><td>Intrusion Set</td><td>Threat actor grouping</td><td>Aliases, goals, resource_level</td></tr>
+      <tr><td>Malware</td><td>Malware instance</td><td>Malware types, capabilities, architecture</td></tr>
+      <tr><td>Threat Actor</td><td>Individual/group</td><td>Roles, sophistication, motivation</td></tr>
+      <tr><td>Tool</td><td>Legitimate/dual-use</td><td>Tool types (info-gathering, credential-exploitation)</td></tr>
+      <tr><td>Vulnerability</td><td>CVE reference</td><td>CVE ID, description</td></tr>
+      <tr><td>Relationship</td><td>Links objects</td><td>Uses, targets, attributed-to, indicates</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ATTRIBUTION -->
+<div class="section" id="attribution">
+  <h2>Attribution Methodology</h2>
+  <p class="subtitle">Linking cyber operations to threat actors with appropriate confidence</p>
+
+  <h3>Attribution Evidence Layers</h3>
+  <div class="diagram">Layer 5: Geopolitical Context        [Lowest confidence alone]
+  └── Motivation alignment, timing with events, targeting patterns
+       "Who benefits? Does timing align with geopolitical events?"
+
+Layer 4: Organizational Behavior
+  └── Working hours (timezone), language artifacts, operational tempo
+       "9-5 Beijing time? Mandarin compiler? Holiday patterns?"
+
+Layer 3: Campaign & Infrastructure Patterns
+  └── Domain registration, hosting providers, C2 patterns, reuse
+       "Same registrant? Same bulletproof host? Same C2 protocol?"
+
+Layer 2: Malware & Tool Analysis
+  └── Code similarity, shared libraries, unique artifacts, PDB paths
+       "Same codebase? Same build environment? Unique encryption?"
+
+Layer 1: Forensic Evidence              [Highest confidence alone]
+  └── OPSEC failures, metadata, direct evidence
+       "Left debug symbols? Logged into personal account? VPN leaked?"
+
+ ╔═══════════════════════════════════════════════════════════════╗
+ ║  STRONG attribution requires MULTIPLE layers of evidence.    ║
+ ║  Single-layer attribution is EASILY manipulated (false flag). ║
+ ╚═══════════════════════════════════════════════════════════════╝</pre></div>
+
+  <h3>False Flag Indicators</h3>
+  <div class="card">
+    <table>
+      <tr><th>False Flag Technique</th><th>Example</th><th>How to Detect</th></tr>
+      <tr><td>Planted language artifacts</td><td>Olympic Destroyer (Russian ops planted DPRK code)</td><td>Inconsistency with other evidence layers</td></tr>
+      <tr><td>Reused known APT tools</td><td>Using leaked Equation Group tools</td><td>Tool alone ≠ attribution (tools get shared/leaked)</td></tr>
+      <tr><td>Fake WHOIS data</td><td>Registration mimicking known actor patterns</td><td>Cross-reference with passive DNS history</td></tr>
+      <tr><td>Timezone manipulation</td><td>Setting compile times to wrong timezone</td><td>Look for inconsistencies across artifacts</td></tr>
+      <tr><td>Metadata planting</td><td>Inserting specific usernames or paths</td><td>Compare with behavioral and infrastructure evidence</td></tr>
+    </table>
+  </div>
+
+  <h3>Confidence Assessment Framework</h3>
+  <table>
+    <tr><th>Level</th><th>Meaning</th><th>Evidence Required</th><th>Language</th></tr>
+    <tr><td style="color:var(--green)">High</td><td>Attribution is well-established</td><td>Multiple independent layers, corroborated by multiple sources</td><td>"We assess with high confidence that..."</td></tr>
+    <tr><td style="color:var(--accent3)">Moderate</td><td>Attribution is credibly supported</td><td>Multiple evidence types, some gaps</td><td>"We assess with moderate confidence that..."</td></tr>
+    <tr><td style="color:var(--accent2)">Low</td><td>Attribution is plausible but uncertain</td><td>Limited evidence, single source or layer</td><td>"We assess with low confidence that..."</td></tr>
+    <tr><td style="color:var(--text3)">Unattributed</td><td>Insufficient evidence</td><td>Insufficient evidence for any attribution</td><td>"The activity remains unattributed..."</td></tr>
+  </table>
+</div>
+
+<!-- MALWARE FAMILIES -->
+<div class="section" id="malware-families">
+  <h2>Malware Family Tracker</h2>
+  <p class="subtitle">Major malware families used by APT groups</p>
+
+  <h3>APT Malware Arsenal</h3>
+  <table>
+    <tr><th>Malware</th><th>Type</th><th>APT Group</th><th>Key Capabilities</th></tr>
+    <tr><td>SUNBURST</td><td>Backdoor</td><td>APT29 (Cozy Bear)</td><td>Supply chain trojan, DGA C2, steganography, anti-analysis</td></tr>
+    <tr><td>Cobalt Strike Beacon</td><td>RAT/C2</td><td>Multiple (also eCrime)</td><td>HTTP/HTTPS/DNS C2, BOFs, malleable profiles, memory-only</td></tr>
+    <tr><td>CHOPSTICK / X-Agent</td><td>Modular backdoor</td><td>APT28 (Fancy Bear)</td><td>Keylogging, file theft, screenshot, modular plugins</td></tr>
+    <tr><td>PlugX / ShadowPad</td><td>RAT</td><td>Multiple Chinese APTs</td><td>DLL sideloading, modular, shared across Chinese groups</td></tr>
+    <tr><td>Industroyer / CrashOverride</td><td>ICS malware</td><td>Sandworm</td><td>ICS protocol manipulation (IEC 104, OPC DA), grid disruption</td></tr>
+    <tr><td>BLINDINGCAN / DRATzarus</td><td>RAT</td><td>Lazarus Group</td><td>Full RAT capabilities, defense/aerospace targeting</td></tr>
+    <tr><td>AppleJeus</td><td>Trojan</td><td>Lazarus Group</td><td>Fake crypto trading apps, macOS + Windows</td></tr>
+    <tr><td>Shamoon / Disttrack</td><td>Wiper</td><td>APT33 (Iran)</td><td>MBR wipe, file destruction, used against Saudi Aramco</td></tr>
+    <tr><td>BlackCat/ALPHV</td><td>Ransomware</td><td>eCrime (affiliates)</td><td>Rust-based, cross-platform, triple extortion</td></tr>
+    <tr><td>BPFDoor</td><td>Backdoor</td><td>Red Menshen (China)</td><td>BPF-based passive backdoor, evades firewalls</td></tr>
+    <tr><td>MuddyC2Go</td><td>C2 Framework</td><td>MuddyWater (Iran)</td><td>Golang C2, PowerShell payloads</td></tr>
+    <tr><td>PIPEDREAM / INCONTROLLER</td><td>ICS framework</td><td>Likely state-sponsored</td><td>Multi-ICS protocol, Schneider/Omron targeting</td></tr>
+  </table>
+
+  <h3>Malware Analysis Indicators for Attribution</h3>
+  <div class="card">
+<pre><span class="keyword">Code-Level Indicators:</span>
+  • PDB paths        → Developer environment, username, project names
+  • Compiler         → MSVC version, GCC, Clang, Delphi, Go, Rust
+  • Build timestamps → Timezone inference (if not zeroed/faked)
+  • String artifacts → Language, debug messages, error handling
+  • Code reuse       → Shared libraries, copy-paste between families
+  • Crypto constants → Custom vs standard implementations
+  • Mutex names      → Campaign identifiers, versioning
+
+<span class="keyword">Behavioral Indicators:</span>
+  • C2 protocol      → Custom vs standard, beacon patterns
+  • Sleep patterns   → Jitter, business hours awareness
+  • Anti-analysis    → Specific VM/sandbox checks
+  • Persistence      → Registry keys, services, scheduled tasks
+  • Collection       → What data is targeted, staging methods
+  • Exfil methods    → Encrypted, steganography, legitimate services</pre>
+  </div>
+</div>
+
+<!-- INFRASTRUCTURE -->
+<div class="section" id="infrastructure">
+  <h2>Infrastructure Patterns</h2>
+  <p class="subtitle">C2 infrastructure analysis and tracking</p>
+
+  <h3>Operational Relay Box (ORB) Networks</h3>
+  <div class="diagram">Adversary Operator
+        │
+        ▼
+┌─────────────────┐
+│   VPN / Tor     │  Layer 1: Anonymization
+│   Entry Point   │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Compromised    │  Layer 2: ORB Network
+│  SOHO Routers   │  (residential IPs, hard to block)
+│  (TP-Link,ASUS) │  Hundreds of nodes, rotating
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Relay / Proxy  │  Layer 3: Relay Infrastructure
+│  (Cloud VPS)    │  Leased servers, bulletproof hosting
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  C2 Server      │  Layer 4: Command & Control
+│  (Domain fronted│  Legitimate-looking domains
+│   or legitimate │  CDN abuse, cloud service abuse
+│   service)      │
+└────────┬────────┘
+         │
+         ▼
+    Victim Network
+
+<span style="color:var(--accent2)">Volt Typhoon model: SOHO router botnets as ORBs</span>
+<span style="color:var(--accent2)">Traffic appears as residential IP → very hard to detect/block</span></div>
+
+  <h3>Infrastructure Tracking Techniques</h3>
+  <table>
+    <tr><th>Technique</th><th>Tool/Source</th><th>What You Find</th></tr>
+    <tr><td>Passive DNS</td><td>Farsight DNSDB, RiskIQ, SecurityTrails</td><td>Historical domain↔IP mappings, DNS changes</td></tr>
+    <tr><td>Certificate Transparency</td><td>crt.sh, Censys, CT logs</td><td>SSL certs issued, domain associations</td></tr>
+    <tr><td>WHOIS Analysis</td><td>DomainTools, WHOIS</td><td>Registrant patterns, registration dates, privacy services</td></tr>
+    <tr><td>Port Scanning</td><td>Shodan, Censys, ZoomEye</td><td>Open ports, services, banners, TLS configs</td></tr>
+    <tr><td>JARM/JA3 Fingerprinting</td><td>Shodan, custom scanning</td><td>TLS implementation fingerprints for C2 identification</td></tr>
+    <tr><td>HTTP Response Hashing</td><td>Shodan favicon hash, HTML body hash</td><td>Unique server configurations across IPs</td></tr>
+    <tr><td>ASN Analysis</td><td>BGP data, ASN lookups</td><td>Hosting patterns, bulletproof providers</td></tr>
+    <tr><td>Domain Generation Algorithm</td><td>DGA detection tools</td><td>Predicted future C2 domains</td></tr>
+  </table>
+
+  <h3>C2 Framework Fingerprinting</h3>
+  <table>
+    <tr><th>Framework</th><th>Default Indicators</th><th>JARM Hash (Default)</th></tr>
+    <tr><td>Cobalt Strike</td><td>checksum8 URI, x86/x64 stager, default cert</td><td>07d14d16d21d21d07c42d41d00041d24a458a375eef0c576d23a7bab9a9fb1</td></tr>
+    <tr><td>Metasploit</td><td>Default URI patterns, Meterpreter beacon</td><td>07d14d16d21d21d00042d41d00041de5fb3038104f457d92ba02e9311512c2</td></tr>
+    <tr><td>Sliver</td><td>mTLS, HTTP(S), DNS, WireGuard</td><td>Varies (Go TLS implementation)</td></tr>
+    <tr><td>Brute Ratel</td><td>DOH C2, sleep obfuscation</td><td>Varies (customizable)</td></tr>
+    <tr><td>Havoc</td><td>HTTPS, SMB named pipes</td><td>Newer, less signature coverage</td></tr>
+  </table>
+</div>
+
+<!-- COLLECTION -->
+<div class="section" id="collection">
+  <h2>Collection & Sources</h2>
+  <p class="subtitle">Intelligence sources for threat research</p>
+
+  <h3>Open Source Intelligence (OSINT) Sources</h3>
+  <table>
+    <tr><th>Category</th><th>Source</th><th>What You Get</th></tr>
+    <tr><td>Malware Analysis</td><td>VirusTotal, MalwareBazaar, Hybrid Analysis, ANY.RUN</td><td>Samples, detections, behavior, relationships</td></tr>
+    <tr><td>Threat Reports</td><td>Vendor blogs (MS, Mandiant, CrowdStrike, ESET, Recorded Future)</td><td>Campaign analysis, IOCs, TTPs</td></tr>
+    <tr><td>IOC Feeds</td><td>AlienVault OTX, Abuse.ch, OpenCTI, MISP</td><td>Community IOC sharing</td></tr>
+    <tr><td>Vulnerability Intel</td><td>NVD, CVE, CISA KEV, Exploit-DB</td><td>CVE details, exploit availability, EPSS</td></tr>
+    <tr><td>Infrastructure</td><td>Shodan, Censys, Farsight DNSDB, crt.sh</td><td>Internet scanning, passive DNS, certificates</td></tr>
+    <tr><td>Code/Leaks</td><td>GitHub, Pastebin monitoring</td><td>Leaked tools, credentials, configs</td></tr>
+    <tr><td>Dark Web</td><td>Dark web monitoring services</td><td>Actor communications, sales, leaks</td></tr>
+    <tr><td>Government</td><td>CISA Advisories, FBI Flash, NSA CSAs, Five Eyes</td><td>Official attribution, defensive guidance</td></tr>
+  </table>
+
+  <h3>Intelligence Cycle for APT Tracking</h3>
+  <div class="card">
+<pre><span class="keyword">1. Direction / Requirements</span>
+   └── What APT groups target our sector?
+       What TTPs are trending? What's our coverage gap?
+
+<span class="keyword">2. Collection</span>
+   └── Monitor feeds, vendor reports, OSINT sources
+       Track infrastructure changes, new malware samples
+       Internal telemetry (EDR, SIEM, network sensors)
+
+<span class="keyword">3. Processing</span>
+   └── Normalize IOCs, extract metadata
+       Map to MITRE ATT&CK, enrich indicators
+       Dedup, validate, timestamp
+
+<span class="keyword">4. Analysis</span>
+   └── Cluster activities → campaigns → actors
+       Diamond Model analysis for each intrusion set
+       Identify trends, predict future operations
+
+<span class="keyword">5. Dissemination</span>
+   └── Strategic intel → leadership (threat landscape)
+       Operational intel → security teams (campaigns)
+       Tactical intel → SOC/IR (IOCs, detection rules)
+
+<span class="keyword">6. Feedback</span>
+   └── Were detections effective?
+       Did hunting queries find anything?
+       Adjust collection priorities</pre>
+  </div>
+</div>
+
+<!-- MICROSOFT NAMING -->
+<div class="section" id="msft-naming">
+  <h2>Microsoft Threat Actor Naming</h2>
+  <p class="subtitle">Microsoft's weather-themed taxonomy and cross-reference</p>
+
+  <h3>Microsoft Naming Convention</h3>
+  <div class="note">Microsoft uses weather-themed names based on nation-state affiliation. "Storm-XXXX" designates developing clusters not yet attributed to a known group.</div>
+
+  <table>
+    <tr><th>Weather Theme</th><th>Nation/Motivation</th><th>Examples</th></tr>
+    <tr><td style="color:var(--blue)">Blizzard ❄️</td><td>Russia</td><td>Midnight Blizzard (APT29), Forest Blizzard (APT28), Seashell Blizzard (Sandworm)</td></tr>
+    <tr><td style="color:var(--accent)">Typhoon 🌀</td><td>China</td><td>Volt Typhoon, Salt Typhoon, Silk Typhoon (HAFNIUM), Flax Typhoon</td></tr>
+    <tr><td style="color:var(--accent3)">Sandstorm 🏜️</td><td>Iran</td><td>Mango Sandstorm (APT35), Mint Sandstorm (APT35), Peach Sandstorm (APT33)</td></tr>
+    <tr><td style="color:var(--green)">Sleet 🌧️</td><td>North Korea</td><td>Diamond Sleet (Lazarus), Jade Sleet, Citrine Sleet, Ruby Sleet</td></tr>
+    <tr><td style="color:var(--purple)">Tempest 🌪️</td><td>eCrime / Financial</td><td>Octo Tempest (Scattered Spider), Manatee Tempest, Pistachio Tempest</td></tr>
+    <tr><td style="color:var(--cyan)">Tsunami 🌊</td><td>Private Sector Offensive</td><td>Commercial surveillance vendors</td></tr>
+    <tr><td style="color:var(--text3)">Storm-XXXX ⛈️</td><td>Developing / Unattributed</td><td>Storm-0558, Storm-0501, Storm-1567</td></tr>
+    <tr><td style="color:var(--pink)">Flood 🌊</td><td>Influence Operations</td><td>Information operations, disinformation</td></tr>
+  </table>
+
+  <h3>Key Microsoft Tracked Actors — Cross-Reference</h3>
+  <table>
+    <tr><th>Microsoft Name</th><th>Other Names</th><th>Nation</th><th>Notable Activity</th></tr>
+    <tr><td>Midnight Blizzard</td><td>APT29, Cozy Bear, The Dukes, NOBELIUM</td><td>Russia (SVR)</td><td>SolarWinds, Microsoft corp breach, diplomatic espionage</td></tr>
+    <tr><td>Forest Blizzard</td><td>APT28, Fancy Bear, Strontium, Sofacy</td><td>Russia (GRU 26165)</td><td>Election interference, NATO targeting, Olympic Destroyer</td></tr>
+    <tr><td>Seashell Blizzard</td><td>Sandworm, Voodoo Bear, IRIDIUM</td><td>Russia (GRU 74455)</td><td>NotPetya, Ukraine wipers, Industroyer, power grid attacks</td></tr>
+    <tr><td>Volt Typhoon</td><td>BRONZE SILHOUETTE, Insidious Taurus</td><td>China</td><td>US critical infrastructure LOTL, pre-positioning</td></tr>
+    <tr><td>Salt Typhoon</td><td>GhostEmperor, FamousSparrow</td><td>China</td><td>Telecom infiltration, lawful intercept access</td></tr>
+    <tr><td>Silk Typhoon</td><td>HAFNIUM</td><td>China</td><td>Exchange Server exploitation (ProxyLogon)</td></tr>
+    <tr><td>Diamond Sleet</td><td>Lazarus Group, ZINC, Hidden Cobra</td><td>DPRK (RGB)</td><td>Crypto theft, defense industry, supply chain</td></tr>
+    <tr><td>Citrine Sleet</td><td>AppleJeus operator</td><td>DPRK</td><td>Cryptocurrency targeting, fake trading platforms</td></tr>
+    <tr><td>Mint Sandstorm</td><td>APT35, Charming Kitten, Phosphorus</td><td>Iran (IRGC)</td><td>Academic/research targeting, credential theft</td></tr>
+    <tr><td>Peach Sandstorm</td><td>APT33, Elfin, Refined Kitten</td><td>Iran</td><td>Defense/energy targeting, Shamoon association</td></tr>
+    <tr><td>Octo Tempest</td><td>Scattered Spider, 0ktapus, UNC3944</td><td>eCrime</td><td>Social engineering, SIM swap, MFA fatigue, ALPHV affiliate</td></tr>
+  </table>
+</div>
+
+<!-- DEFENDER TI -->
+<div class="section" id="defender-ti">
+  <h2>Defender TI Integration</h2>
+  <p class="subtitle">Microsoft Defender Threat Intelligence for R&D workflows</p>
+
+  <h3>Defender TI Capabilities</h3>
+  <div class="card">
+    <table>
+      <tr><th>Feature</th><th>Description</th><th>R&D Application</th></tr>
+      <tr><td>Threat Articles</td><td>Microsoft-authored threat intel reports</td><td>Stay current on campaigns, validate findings</td></tr>
+      <tr><td>Intel Profiles</td><td>Detailed actor/tool/vulnerability profiles</td><td>Reference during campaign analysis</td></tr>
+      <tr><td>Indicator Search</td><td>Enrich IOCs with Microsoft data</td><td>Validate IOCs, find related infrastructure</td></tr>
+      <tr><td>Data Sets</td><td>Passive DNS, WHOIS, certificates, trackers, components</td><td>Infrastructure mapping, pivot analysis</td></tr>
+      <tr><td>Reputation Scoring</td><td>IP/Domain reputation based on Microsoft telemetry</td><td>Prioritize investigation targets</td></tr>
+      <tr><td>Attack Surface</td><td>External-facing asset discovery</td><td>Identify exposure, validate vulnerabilities</td></tr>
+    </table>
+  </div>
+
+  <h3>Defender TI API Integration</h3>
+  <div class="card">
+<pre><span class="comment"># Query Defender TI API for indicator enrichment</span>
+<span class="comment"># Microsoft Graph Security API</span>
+
+<span class="comment"># Get threat intelligence article</span>
+GET https://graph.microsoft.com/beta/security/threatIntelligence/articles/{articleId}
+
+<span class="comment"># Search indicators</span>
+GET https://graph.microsoft.com/beta/security/threatIntelligence/hosts/{hostName}
+
+<span class="comment"># Passive DNS for a host</span>
+GET https://graph.microsoft.com/beta/security/threatIntelligence/hosts/{hostName}/passivedns
+
+<span class="comment"># WHOIS record</span>
+GET https://graph.microsoft.com/beta/security/threatIntelligence/hosts/{hostName}/whois
+
+<span class="comment"># Reputation</span>
+GET https://graph.microsoft.com/beta/security/threatIntelligence/hosts/{hostName}/reputation
+
+<span class="comment"># Components (web technologies)</span>
+GET https://graph.microsoft.com/beta/security/threatIntelligence/hosts/{hostName}/components
+
+<span class="comment"># SSL Certificates</span>
+GET https://graph.microsoft.com/beta/security/threatIntelligence/hosts/{hostName}/sslCertificates</pre>
+  </div>
+
+  <h3>KQL Hunting Queries for APT Activity</h3>
+  <div class="card">
+    <div class="card-title">Microsoft Sentinel / Defender Advanced Hunting</div>
+<pre><span class="comment">// Detect Volt Typhoon LOTL techniques</span>
+DeviceProcessEvents
+| <span class="keyword">where</span> FileName <span class="keyword">in~</span> (<span class="string">"ntdsutil.exe"</span>, <span class="string">"netsh.exe"</span>, <span class="string">"certutil.exe"</span>)
+| <span class="keyword">where</span> ProcessCommandLine <span class="keyword">has_any</span> (<span class="string">"ifconfig"</span>, <span class="string">"portproxy"</span>, <span class="string">"urlcache"</span>, <span class="string">"activate instance ntds"</span>)
+| <span class="keyword">project</span> Timestamp, DeviceName, AccountName, FileName, ProcessCommandLine
+
+<span class="comment">// Detect token forging / Golden SAML patterns</span>
+AADSignInEventsBeta
+| <span class="keyword">where</span> ErrorCode == <span class="number">0</span>
+| <span class="keyword">where</span> isnotempty(TokenIssuerName) <span class="keyword">and</span> TokenIssuerType != <span class="string">"AzureAD"</span>
+| <span class="keyword">where</span> TokenIssuerName !startswith <span class="string">"https://sts.windows.net"</span>
+| <span class="keyword">project</span> Timestamp, AccountUpn, IPAddress, TokenIssuerName
+
+<span class="comment">// Detect suspicious OAuth app activity (Storm-0558 style)</span>
+CloudAppEvents
+| <span class="keyword">where</span> ActionType == <span class="string">"Add OAuth2PermissionGrant"</span>
+   <span class="keyword">or</span> ActionType == <span class="string">"Consent to application"</span>
+| <span class="keyword">where</span> RawEventData <span class="keyword">has</span> <span class="string">"ReadWrite.All"</span> <span class="keyword">or</span> RawEventData <span class="keyword">has</span> <span class="string">"full_access_as_app"</span>
+| <span class="keyword">project</span> Timestamp, AccountDisplayName, ActionType, Application
+
+<span class="comment">// Detect SOHO router C2 beaconing (ORB detection)</span>
+DeviceNetworkEvents
+| <span class="keyword">where</span> RemoteIPType == <span class="string">"Public"</span>
+| <span class="keyword">summarize</span> ConnectionCount=count(), DistinctPorts=dcount(RemotePort) <span class="keyword">by</span> RemoteIP, bin(Timestamp, 1h)
+| <span class="keyword">where</span> ConnectionCount > <span class="number">20</span> <span class="keyword">and</span> DistinctPorts == <span class="number">1</span>  <span class="comment">// Regular beaconing pattern</span>
+| <span class="keyword">join</span> <span class="keyword">kind</span>=<span class="keyword">inner</span> (
+    DeviceNetworkEvents | <span class="keyword">summarize</span> <span class="keyword">by</span> RemoteIP
+    | <span class="keyword">where</span> RemoteIP <span class="keyword">matches regex</span> <span class="string">@"^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)"</span> == <span class="keyword">false</span>
+) <span class="keyword">on</span> RemoteIP</pre>
+  </div>
+</div>
+
+</div><!-- end main -->
+
+<script>
+// APT Database
+const APT_DATA = [
+  {name:"APT29 / Cozy Bear",aliases:"Midnight Blizzard, NOBELIUM, The Dukes, YTTRIUM",country:"russia",type:"nation",
+   sponsor:"Russia (SVR - Foreign Intelligence Service)",targets:"Government, diplomacy, think tanks, technology, healthcare",
+   active:"2008 — Present",sophistication:"Very High",
+   ttps:"Supply chain compromise, credential theft, OAuth abuse, SAML token forging, cloud exploitation, living-off-the-land",
+   tools:"SUNBURST, TEARDROP, EnvyScout, MagicWeb, FoggyWeb, custom tooling",
+   campaigns:"SolarWinds (2020), Microsoft Corp Breach (2023), Diplomatic phishing campaigns",
+   notes:"One of the most sophisticated state actors. Known for exceptional OPSEC and patience. Heavy focus on cloud identity and authentication systems. Recently pivoted to targeting cloud infrastructure and identity providers."},
+
+  {name:"APT28 / Fancy Bear",aliases:"Forest Blizzard, Strontium, Sofacy, Pawn Storm, Sednit",country:"russia",type:"nation",
+   sponsor:"Russia (GRU Unit 26165)",targets:"Government, military, defense, media, political organizations",
+   active:"2004 — Present",sophistication:"High",
+   ttps:"Spearphishing, credential harvesting, zero-day exploitation, Wi-Fi attacks, email server exploitation",
+   tools:"CHOPSTICK/X-Agent, Zebrocy, GoDownloader, OCEANMAP, custom rootkits",
+   campaigns:"DNC hack (2016), Olympic Destroyer false flag, German Bundestag, NATO targeting",
+   notes:"More aggressive and noisier than APT29. Known for rapid weaponization of vulnerabilities. Linked to election interference operations. Recently exploiting Outlook vulnerabilities (CVE-2023-23397)."},
+
+  {name:"Sandworm / Voodoo Bear",aliases:"Seashell Blizzard, IRIDIUM, TeleBots, BlackEnergy Group",country:"russia",type:"nation",
+   sponsor:"Russia (GRU Unit 74455)",targets:"Critical infrastructure, energy, government, media (Ukraine focus)",
+   active:"2009 — Present",sophistication:"Very High",
+   ttps:"ICS/SCADA attacks, supply chain, wiper malware, destructive operations, false flags",
+   tools:"BlackEnergy, Industroyer/CrashOverride, NotPetya, Olympic Destroyer, CaddyWiper, WhisperGate",
+   campaigns:"Ukraine power grid attacks (2015/2016), NotPetya (2017), Ukraine wipers (2022), Industroyer2 (2022)",
+   notes:"Most destructive cyber actor globally. Responsible for NotPetya (~$10B damage). Specializes in ICS attacks and destructive operations. Primary cyber warfare unit supporting Russian military operations in Ukraine."},
+
+  {name:"Volt Typhoon",aliases:"BRONZE SILHOUETTE, Insidious Taurus, DEV-0391",country:"china",type:"nation",
+   sponsor:"China (PRC state-sponsored)",targets:"US critical infrastructure — telecom, energy, water, transportation",
+   active:"2021 — Present",sophistication:"Very High",
+   ttps:"Living-off-the-land (LOTL), edge device exploitation, ORB networks, long-term persistence, minimal malware",
+   tools:"LOLBins (ntdsutil, netsh, certutil, PowerShell), compromised SOHO routers as ORBs",
+   campaigns:"US critical infrastructure pre-positioning (ongoing), Pacific region targeting",
+   notes:"UNIQUE approach: almost no custom malware, entirely LOTL. Focus on pre-positioning for potential Taiwan conflict scenario. Uses compromised SOHO routers as operational relay boxes (ORBs). Extremely difficult to detect."},
+
+  {name:"Salt Typhoon",aliases:"GhostEmperor, FamousSparrow",country:"china",type:"nation",
+   sponsor:"China (PRC state-sponsored)",targets:"Telecommunications, ISPs, government",
+   active:"2023 — Present",sophistication:"Very High",
+   ttps:"Telecom infrastructure compromise, lawful intercept access, long-duration persistence",
+   tools:"Custom implants, rootkits targeting telecom equipment",
+   campaigns:"US telecom infiltration (AT&T, Verizon, others — 2024)",
+   notes:"One of the most significant telecom espionage operations ever disclosed. Accessed lawful intercept systems. Targeted specific government officials' communications. Duration measured in months."},
+
+  {name:"HAFNIUM / Silk Typhoon",aliases:"Silk Typhoon",country:"china",type:"nation",
+   sponsor:"China (PRC state-sponsored)",targets:"Defense, education, NGOs, healthcare, legal, think tanks",
+   active:"2017 — Present",sophistication:"High",
+   ttps:"Zero-day exploitation, web shell deployment, credential dumping, data exfiltration",
+   tools:"China Chopper, ASPXSPY, custom web shells, Covenant, ProxyLogon chain",
+   campaigns:"Microsoft Exchange ProxyLogon exploitation (2021), ProxyShell",
+   notes:"Responsible for mass Exchange Server exploitation affecting thousands of organizations worldwide. Known for rapid zero-day exploitation. Recent shift to targeting IT infrastructure providers."},
+
+  {name:"Lazarus Group",aliases:"Diamond Sleet, ZINC, Hidden Cobra, Guardians of Peace",country:"dprk",type:"nation",
+   sponsor:"North Korea (RGB - Reconnaissance General Bureau)",targets:"Financial institutions, cryptocurrency, defense, aerospace, media",
+   active:"2009 — Present",sophistication:"High",
+   ttps:"Supply chain attacks, social engineering, custom malware, cryptocurrency theft, spearphishing",
+   tools:"BLINDINGCAN, DRATzarus, AppleJeus, MATA framework, custom RATs",
+   campaigns:"Sony Pictures (2014), Bangladesh Bank ($81M, 2016), WannaCry (2017), Ronin Bridge ($620M, 2022), multiple crypto thefts",
+   notes:"Primary financial motivator — stolen crypto funds DPRK nuclear/missile programs. Billions in cryptocurrency theft. Increasing sophistication in supply chain attacks. Targets developers via trojanized npm packages."},
+
+  {name:"Kimsuky",aliases:"Emerald Sleet, THALLIUM, Velvet Chollima, Black Banshee",country:"dprk",type:"nation",
+   sponsor:"North Korea (RGB)",targets:"Think tanks, academics, government (Korea/Japan/US focus), nuclear policy experts",
+   active:"2012 — Present",sophistication:"Medium-High",
+   ttps:"Social engineering, credential theft, spearphishing, browser extensions, custom malware",
+   tools:"BabyShark, ReconShark, RandomQuery, custom credential stealers",
+   campaigns:"Ongoing academic/policy targeting, South Korean government infiltration",
+   notes:"Intelligence collection focused. Known for elaborate social engineering — impersonates journalists, academics, officials. Long-term relationship building before malware delivery."},
+
+  {name:"APT35 / Charming Kitten",aliases:"Mint Sandstorm, Phosphorus, TA453, ITG18",country:"iran",type:"nation",
+   sponsor:"Iran (IRGC Intelligence Organization)",targets:"Academics, journalists, dissidents, defense, diplomacy, technology",
+   active:"2014 — Present",sophistication:"Medium-High",
+   ttps:"Credential phishing, social engineering, fake personas, mobile malware",
+   tools:"HYPERSCRAPE, PowerLess, BellaCiao, custom Android malware",
+   campaigns:"Think tank targeting, journalist/activist surveillance, academic credential theft",
+   notes:"Known for persistent social engineering and credential theft. Creates elaborate fake personas on social media. Increasingly targeting cloud infrastructure. Some crossover with influence operations."},
+
+  {name:"APT33 / Elfin",aliases:"Peach Sandstorm, Refined Kitten, HOLMIUM",country:"iran",type:"nation",
+   sponsor:"Iran (likely IRGC)",targets:"Aerospace, energy, petrochemical, defense (Gulf states, US, Asia)",
+   active:"2013 — Present",sophistication:"Medium",
+   ttps:"Spearphishing, password spraying, VPN exploitation, destructive attacks",
+   tools:"Shamoon/Disttrack (associated), custom droppers, commodity tools",
+   campaigns:"Saudi Aramco association (Shamoon), aerospace targeting, password spray campaigns",
+   notes:"Notable for destructive capability (Shamoon association). Increasingly using commodity tools alongside custom malware. Password spraying at scale against target sectors."},
+
+  {name:"MuddyWater",aliases:"Mango Sandstorm, MERCURY, Static Kitten, Seedworm",country:"iran",type:"nation",
+   sponsor:"Iran (MOIS - Ministry of Intelligence)",targets:"Government, telecom, oil/gas (Middle East focus)",
+   active:"2017 — Present",sophistication:"Medium",
+   ttps:"Spearphishing, macro-laden documents, PowerShell, custom C2 frameworks",
+   tools:"MuddyC2Go, POWERSTATS, PhonyC2, SimpleHarm",
+   campaigns:"Middle East government targeting, Exchange exploitation",
+   notes:"MOIS-affiliated (distinct from IRGC groups). Known for rapid adoption of new techniques. Custom C2 frameworks written in Go/Python. Often targets regional neighbors."},
+
+  {name:"Scattered Spider / Octo Tempest",aliases:"Octo Tempest, 0ktapus, UNC3944",country:"crime",type:"ecrime",
+   sponsor:"English-speaking cybercriminals",targets:"Telecom, technology, gaming, hospitality, finance, BPO/MSP",
+   active:"2022 — Present",sophistication:"High",
+   ttps:"Social engineering (helpdesk, SIM swap, MFA fatigue), identity provider targeting, cloud exploitation",
+   tools:"Various RMM tools, AnyDesk, cloud-native tools, ALPHV/BlackCat ransomware",
+   campaigns:"MGM Resorts ($100M impact), Caesars Entertainment ($15M ransom), multiple enterprise breaches",
+   notes:"HIGHLY notable: English-speaking actors with sophisticated social engineering. SIM swapping, helpdesk manipulation. ALPHV/BlackCat affiliate. Extremely effective at bypassing MFA through social engineering rather than technical means."},
+
+  {name:"FIN7 / Carbanak",aliases:"GOLD NIAGARA, Carbon Spider, Sangria Tempest",country:"crime",type:"ecrime",
+   sponsor:"eCrime organization (Eastern European)",targets:"Retail, hospitality, financial services, restaurants",
+   active:"2013 — Present",sophistication:"High",
+   ttps:"Spearphishing, social engineering, POS malware, supply chain, ransomware",
+   tools:"CARBANAK, GRIFFON, BIRDWATCH, Lizar/Tirion, POWERPLANT",
+   campaigns:"Multiple retail POS campaigns, ransomware operations (REvil, DarkSide, BlackCat affiliate)",
+   notes:"Evolved from POS fraud to ransomware affiliate/operator. Multiple members arrested but group persists. Known for creating fake cybersecurity companies to recruit unwitting developers. Sophisticated supply chain attacks."}
+];
+
+let currentFilter = 'all';
+
+function renderAPTs(data) {
+  const grid = document.getElementById('apt-grid');
+  grid.innerHTML = '';
+  data.forEach((apt, idx) => {
+    const card = document.createElement('div');
+    card.className = 'apt-card';
+    card.dataset.idx = idx;
+    const typeClass = apt.type === 'nation' ? (apt.country === 'crime' ? 'badge-crime' : 'badge-nation') : 'badge-crime';
+    card.innerHTML = `
+      <div class="apt-name">${apt.name}</div>
+      <div class="apt-aliases">${apt.aliases}</div>
+      <div class="apt-meta">
+        <span class="badge ${typeClass}">${apt.country.toUpperCase()}</span>
+        <span class="badge" style="background:rgba(34,197,94,.15);color:var(--green)">${apt.sophistication}</span>
+        <span class="badge" style="background:rgba(59,130,246,.15);color:var(--blue)">${apt.active}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text3)">Targets: ${apt.targets}</div>
+      <div class="apt-detail">
+        <p style="margin-bottom:8px"><strong style="color:var(--text)">Sponsor:</strong> ${apt.sponsor}</p>
+        <p style="margin-bottom:8px"><strong style="color:var(--text)">Key TTPs:</strong> ${apt.ttps}</p>
+        <p style="margin-bottom:8px"><strong style="color:var(--text)">Known Tools:</strong> ${apt.tools}</p>
+        <p style="margin-bottom:8px"><strong style="color:var(--text)">Notable Campaigns:</strong> ${apt.campaigns}</p>
+        <p style="margin-bottom:0"><strong style="color:var(--text)">Notes:</strong> ${apt.notes}</p>
+      </div>`;
+    card.addEventListener('click', () => card.classList.toggle('expanded'));
+    grid.appendChild(card);
+  });
+}
+
+function filterAPTs() {
+  const search = document.getElementById('apt-search').value.toLowerCase();
+  let filtered = APT_DATA;
+  if (currentFilter !== 'all') {
+    filtered = filtered.filter(a => currentFilter === 'crime' ? a.type === 'ecrime' : a.country === currentFilter);
+  }
+  if (search) {
+    filtered = filtered.filter(a =>
+      (a.name + a.aliases + a.country + a.targets + a.tools + a.ttps + a.sponsor).toLowerCase().includes(search)
+    );
+  }
+  renderAPTs(filtered);
+}
+
+function setFilter(btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  currentFilter = btn.dataset.filter;
+  filterAPTs();
+}
+
+renderAPTs(APT_DATA);
+
+// Navigation
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById(item.dataset.section).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

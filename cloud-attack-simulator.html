@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Attack Path Simulator</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0c0f1a;--s1:#131729;--s2:#1b2038;--s3:#252b48;--bd:#2f3659;--t1:#dde1f0;--t2:#8890b5;--az:#0078d4;--aws:#ff9900;--gcp:#4285f4;--red:#ef4444;--org:#f97316;--yel:#eab308;--grn:#22c55e;--cyn:#06b6d4;--pur:#8b5cf6}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+.app{display:flex;flex-direction:column;height:100vh}
+.header{background:var(--s1);border-bottom:1px solid var(--bd);padding:10px 20px;display:flex;align-items:center;gap:16px}
+.header h1{font-size:16px;font-weight:700}
+.header h1 span{color:var(--cyn)}
+.cloud-tabs{display:flex;gap:4px;margin-left:20px}
+.cloud-tab{padding:6px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;border:1px solid var(--bd);background:var(--s2);color:var(--t2);transition:all .15s}
+.cloud-tab:hover{color:var(--t1)}
+.cloud-tab.active-az{background:var(--az);color:#fff;border-color:var(--az)}
+.cloud-tab.active-aws{background:var(--aws);color:#000;border-color:var(--aws)}
+.cloud-tab.active-gcp{background:var(--gcp);color:#fff;border-color:var(--gcp)}
+.cloud-tab.active-hybrid{background:var(--pur);color:#fff;border-color:var(--pur)}
+.view-tabs{display:flex;gap:2px;margin-left:auto}
+.vtab{padding:6px 12px;border-radius:6px;cursor:pointer;font-size:11px;background:transparent;border:none;color:var(--t2);transition:all .15s}
+.vtab:hover{background:var(--s2);color:var(--t1)}
+.vtab.active{background:var(--s3);color:var(--t1)}
+.main{flex:1;overflow-y:auto;padding:20px}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h3{font-size:14px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.path-card{background:var(--s2);border:1px solid var(--bd);border-radius:8px;overflow:hidden;transition:all .15s;cursor:pointer}
+.path-card:hover{border-color:var(--cyn)}
+.path-header{padding:12px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:8px}
+.path-header h4{font-size:12px;flex:1}
+.path-body{padding:12px 14px}
+.path-body p{font-size:11px;color:var(--t2);line-height:1.5}
+.path-steps{display:flex;flex-direction:column;gap:4px;margin-top:8px}
+.path-step{display:flex;align-items:flex-start;gap:8px;font-size:11px;padding:6px 8px;background:var(--s1);border-radius:4px}
+.step-num{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px}
+.t-az{background:rgba(0,120,212,.15);color:var(--az)}
+.t-aws{background:rgba(255,153,0,.15);color:var(--aws)}
+.t-gcp{background:rgba(66,133,244,.15);color:var(--gcp)}
+.t-red{background:rgba(239,68,68,.12);color:var(--red)}
+.t-org{background:rgba(249,115,22,.12);color:var(--org)}
+.t-grn{background:rgba(34,197,94,.12);color:var(--grn)}
+.t-cyn{background:rgba(6,182,212,.12);color:var(--cyn)}
+.t-pur{background:rgba(139,92,246,.12);color:var(--pur)}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.sev-c{background:rgba(239,68,68,.15);color:var(--red)}
+.sev-h{background:rgba(249,115,22,.15);color:var(--org)}
+.sev-m{background:rgba(234,179,8,.15);color:var(--yel)}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--bd)}
+th{color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.flow-diagram{display:flex;align-items:center;gap:4px;overflow-x:auto;padding:12px 0}
+.flow-node{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;min-width:100px;text-align:center;font-size:11px;flex-shrink:0}
+.flow-arrow{color:var(--t2);font-size:14px;flex-shrink:0}
+.detail-expand{display:none;padding:12px;background:var(--s1);border-top:1px solid var(--bd)}
+.detail-expand.show{display:block}
+.stat-row{display:flex;gap:12px;margin-bottom:16px}
+.stat{flex:1;background:var(--s2);border-radius:8px;padding:12px;text-align:center;border:1px solid var(--bd)}
+.stat .num{font-size:24px;font-weight:700}
+.stat .lbl{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+.section-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--t2);margin:20px 0 10px}
+.code-block{background:var(--bg);border:1px solid var(--bd);border-radius:6px;padding:12px;font-family:'SF Mono','Fira Code',monospace;font-size:11px;line-height:1.6;overflow-x:auto;margin:8px 0;white-space:pre}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+const SCENARIOS = {
+  azure: [
+    {name:'Azure AD Privilege Escalation',severity:'critical',tags:['Identity','Entra ID','Privilege Escalation'],desc:'Exploiting Azure AD misconfigurations to escalate from standard user to Global Administrator through application consent, role assignments, and PIM abuse.',
+      steps:[
+        {n:1,title:'Initial Access via Phishing',detail:'Obtain Azure AD credentials through spear-phishing or token theft. Target users with existing cloud access.',color:'var(--org)'},
+        {n:2,title:'Enumerate Azure AD Roles',detail:'Use Microsoft Graph API or AzureHound to map role assignments, group memberships, and application registrations.',color:'var(--yel)'},
+        {n:3,title:'Abuse Application Consent',detail:'Create or modify application registration with excessive permissions (Mail.Read, Directory.ReadWrite.All). Exploit admin consent workflows.',color:'var(--red)'},
+        {n:4,title:'PIM Role Activation',detail:'If target has eligible PIM roles, exploit weak approval processes or JIT activation to gain temporary admin access.',color:'var(--red)'},
+        {n:5,title:'Global Admin Takeover',detail:'Escalate to Global Administrator via service principal abuse, directory role assignment, or conditional access bypass.',color:'var(--red)'}
+      ],
+      mitigations:['Enforce MFA for all admin roles','Implement PIM with approval workflows','Restrict application consent to admins','Monitor Microsoft Graph API usage','Deploy Azure AD Identity Protection'],
+      detection:['Unusual role activation patterns','New application registrations with high-privilege permissions','Admin consent grants to unknown applications','Impossible travel alerts','Token replay detection'],
+      attck:['T1078.004','T1098.001','T1098.003']
+    },
+    {name:'Azure Storage Account Exploitation',severity:'high',tags:['Storage','Data Exfiltration','Misconfiguration'],desc:'Discovering and exploiting misconfigured Azure Storage accounts to access sensitive data including blobs, tables, queues, and file shares.',
+      steps:[
+        {n:1,title:'Storage Account Discovery',detail:'Enumerate storage accounts via DNS brute-forcing ({name}.blob.core.windows.net) or Azure Resource Graph queries.',color:'var(--yel)'},
+        {n:2,title:'Access Level Assessment',detail:'Check for anonymous access, shared access signatures (SAS), stored access policies, and key-based authentication.',color:'var(--yel)'},
+        {n:3,title:'SAS Token Exploitation',detail:'Find leaked or overly permissive SAS tokens in code repos, config files, or network traffic. Exploit for data access.',color:'var(--org)'},
+        {n:4,title:'Data Exfiltration',detail:'Download sensitive blobs, table data, or file shares. Look for backups, credentials, PII, and intellectual property.',color:'var(--red)'},
+        {n:5,title:'Persistence via Access Keys',detail:'Obtain storage account access keys for persistent access. Keys provide full control over all storage services.',color:'var(--red)'}
+      ],
+      mitigations:['Disable anonymous blob access','Use Azure AD authentication over access keys','Implement network service endpoints/private endpoints','Enable storage analytics logging','Rotate access keys regularly','Use short-lived SAS tokens with IP restrictions'],
+      detection:['Anonymous access attempts','Unusual data download volumes','SAS token usage from unexpected IPs','Access key usage after rotation','Cross-tenant storage access'],
+      attck:['T1530','T1567.002','T1078.004']
+    },
+    {name:'Azure VM & Managed Identity Abuse',severity:'critical',tags:['Compute','Identity','Lateral Movement'],desc:'Compromising Azure VMs and abusing their managed identities to pivot across Azure resources and subscriptions.',
+      steps:[
+        {n:1,title:'VM Compromise',detail:'Exploit public-facing application on Azure VM, or use stolen credentials for RDP/SSH access.',color:'var(--org)'},
+        {n:2,title:'IMDS Token Theft',detail:'Query Instance Metadata Service (169.254.169.254) to obtain managed identity access tokens.',color:'var(--red)'},
+        {n:3,title:'Permission Enumeration',detail:'Use stolen token to enumerate Azure RBAC permissions. Check for Contributor, Owner, or custom role assignments.',color:'var(--yel)'},
+        {n:4,title:'Cross-Resource Pivot',detail:'Use managed identity permissions to access Key Vaults, databases, storage accounts, and other subscriptions.',color:'var(--red)'},
+        {n:5,title:'Subscription-Level Access',detail:'If managed identity has subscription-level roles, deploy new resources, modify NSGs, or access other VMs.',color:'var(--red)'}
+      ],
+      mitigations:['Restrict managed identity permissions (least privilege)','Use user-assigned over system-assigned identities','Implement network restrictions on IMDS','Enable Azure Defender for VMs','Monitor token requests from IMDS'],
+      detection:['Unusual IMDS queries','Token usage from unexpected source IPs','Cross-resource access patterns','New resource deployments from VM identities','Privilege escalation through managed identities'],
+      attck:['T1078.004','T1552.005','T1021']
+    }
+  ],
+  aws: [
+    {name:'AWS IAM Privilege Escalation',severity:'critical',tags:['IAM','Privilege Escalation','Policy'],desc:'Exploiting overly permissive IAM policies to escalate privileges from a low-privileged user to administrator access.',
+      steps:[
+        {n:1,title:'Credential Acquisition',detail:'Obtain AWS access keys through phishing, code repository scanning, or SSRF attacks on EC2 metadata.',color:'var(--org)'},
+        {n:2,title:'IAM Enumeration',detail:'Use tools like enumerate-iam, Pacu, or ScoutSuite to map permissions, roles, policies, and trust relationships.',color:'var(--yel)'},
+        {n:3,title:'Policy Abuse',detail:'Exploit iam:CreatePolicyVersion, iam:AttachUserPolicy, iam:PutUserPolicy, or iam:PassRole to elevate privileges.',color:'var(--red)'},
+        {n:4,title:'Role Chaining',detail:'Chain AssumeRole permissions across accounts. Exploit confused deputy problems in cross-account trust.',color:'var(--red)'},
+        {n:5,title:'Admin Access',detail:'Achieve AdministratorAccess through policy manipulation, role assumption, or service-linked role abuse.',color:'var(--red)'}
+      ],
+      mitigations:['Use Permission Boundaries','Implement SCP guardrails','Restrict IAM mutation permissions','Enable CloudTrail with integrity validation','Use AWS Access Analyzer'],
+      detection:['IAM policy modifications','New policy versions created','Unusual AssumeRole calls','Cross-account role assumptions','Access key usage from new IPs'],
+      attck:['T1078.004','T1098.001','T1098.003']
+    },
+    {name:'AWS EC2 SSRF to Cloud Takeover',severity:'critical',tags:['EC2','SSRF','Metadata','IMDSv2'],desc:'Exploiting Server-Side Request Forgery in EC2-hosted applications to steal instance metadata credentials and pivot across AWS.',
+      steps:[
+        {n:1,title:'Identify SSRF Vulnerability',detail:'Find SSRF in web application (URL parameters, webhooks, PDF generators, image processors).',color:'var(--yel)'},
+        {n:2,title:'IMDS Credential Theft',detail:'Access http://169.254.169.254/latest/meta-data/iam/security-credentials/ to steal temporary credentials.',color:'var(--red)'},
+        {n:3,title:'Credential Validation',detail:'Use stolen credentials externally. Verify permissions with sts:GetCallerIdentity and iam:GetUser.',color:'var(--org)'},
+        {n:4,title:'AWS Environment Pivot',detail:'Access S3 buckets, RDS databases, Lambda functions, Secrets Manager based on role permissions.',color:'var(--red)'},
+        {n:5,title:'Persistence',detail:'Create new IAM users/access keys, modify Lambda functions, or establish backdoor roles for persistent access.',color:'var(--red)'}
+      ],
+      mitigations:['Enforce IMDSv2 (require PUT token)','Restrict instance role permissions','Implement VPC endpoints for metadata','Use WAF for SSRF prevention','Network segmentation'],
+      detection:['IMDS access from unusual processes','Credential use from external IPs','New IAM entities created','Unusual API calls from EC2 roles','GuardDuty alerts for credential exfiltration'],
+      attck:['T1552.005','T1078.004','T1190']
+    }
+  ],
+  gcp: [
+    {name:'GCP Service Account Key Abuse',severity:'critical',tags:['IAM','Service Account','Key Management'],desc:'Exploiting leaked or over-provisioned service account keys to access GCP resources and escalate privileges.',
+      steps:[
+        {n:1,title:'Key Discovery',detail:'Find service account keys in code repos, CI/CD pipelines, container images, or cloud storage buckets.',color:'var(--yel)'},
+        {n:2,title:'Permission Assessment',detail:'Authenticate with key and enumerate permissions using testIamPermissions API across projects.',color:'var(--yel)'},
+        {n:3,title:'Token Generation',detail:'Generate OAuth2 tokens or sign JWTs for the service account. Access GCP APIs with elevated permissions.',color:'var(--org)'},
+        {n:4,title:'Resource Access',detail:'Access Cloud Storage, BigQuery, Compute Engine, Cloud SQL based on service account IAM bindings.',color:'var(--red)'},
+        {n:5,title:'Privilege Escalation',detail:'Exploit setIamPolicy permissions, actAs capability, or deploy Cloud Functions with privileged service accounts.',color:'var(--red)'}
+      ],
+      mitigations:['Use Workload Identity Federation instead of keys','Implement key rotation policies','Restrict service account creation','Enable Organization Policy constraints','Monitor key usage with Cloud Audit Logs'],
+      detection:['Service account key creation events','Key usage from external IPs','Unusual API patterns for service accounts','Cross-project resource access','Privilege escalation through IAM policy changes'],
+      attck:['T1078.004','T1552','T1098']
+    },
+    {name:'GCP Metadata & Compute Exploitation',severity:'high',tags:['Compute','Metadata','SSRF','Lateral Movement'],desc:'Abusing GCP Compute Engine metadata service and instance permissions to move laterally across the GCP environment.',
+      steps:[
+        {n:1,title:'Instance Compromise',detail:'Gain access to a GCP Compute instance via application vulnerability, SSH key theft, or serial console.',color:'var(--org)'},
+        {n:2,title:'Metadata Extraction',detail:'Query metadata.google.internal for access tokens, project info, SSH keys, and custom metadata.',color:'var(--red)'},
+        {n:3,title:'Scope Assessment',detail:'Check token scopes (cloud-platform gives full access). Enumerate accessible APIs and resources.',color:'var(--yel)'},
+        {n:4,title:'Project-Wide SSH Key Injection',detail:'If compute.instances.setMetadata is available, inject SSH keys into project metadata for access to all instances.',color:'var(--red)'},
+        {n:5,title:'Cross-Project Movement',detail:'Use service account permissions to access shared VPCs, shared datasets, or cross-project resources.',color:'var(--red)'}
+      ],
+      mitigations:['Use OS Login instead of project SSH keys','Restrict VM metadata access','Implement VPC Service Controls','Minimize default service account scopes','Enable Security Command Center'],
+      detection:['Metadata server queries for access tokens','SSH key injection in project metadata','Cross-project API calls','New firewall rules created','Unusual instance creation'],
+      attck:['T1552.005','T1078.004','T1021.004']
+    }
+  ],
+  hybrid: [
+    {name:'On-Prem AD to Azure AD Pivot',severity:'critical',tags:['Hybrid','Active Directory','Azure AD','Lateral Movement'],desc:'Leveraging on-premises Active Directory compromise to pivot into Azure AD and cloud resources through Azure AD Connect and federation.',
+      steps:[
+        {n:1,title:'On-Prem AD Compromise',detail:'Gain Domain Admin through Kerberoasting, DCSync, or exploit. Standard AD attack path.',color:'var(--org)'},
+        {n:2,title:'Azure AD Connect Extraction',detail:'Extract Azure AD Connect credentials from the server. Decrypt stored credentials to obtain cloud sync account.',color:'var(--red)'},
+        {n:3,title:'Cloud Identity Manipulation',detail:'Use sync account to modify cloud user attributes, reset passwords, or inject shadow credentials.',color:'var(--red)'},
+        {n:4,title:'Federation Abuse (Golden SAML)',detail:'If ADFS is used, steal token signing certificate to forge SAML tokens for any cloud user.',color:'var(--red)'},
+        {n:5,title:'Full Cloud Takeover',detail:'Access Azure subscriptions, M365 data, and all federated SaaS applications as any user.',color:'var(--red)'}
+      ],
+      mitigations:['Protect Azure AD Connect server as Tier 0','Enable Cloud Authentication (PHS/PTA over ADFS)','Monitor DirSync account usage','Implement Conditional Access for admin accounts','Deploy Azure AD Identity Protection'],
+      detection:['Azure AD Connect credential access','Unusual sync operations','SAML token anomalies','Password reset from sync accounts','Federation metadata changes'],
+      attck:['T1078.002','T1078.004','T1550.001','T1606.002']
+    },
+    {name:'Multi-Cloud Lateral Movement',severity:'high',tags:['Multi-Cloud','Lateral Movement','Federation'],desc:'Moving laterally between cloud providers through shared identities, federated authentication, and cross-cloud trust relationships.',
+      steps:[
+        {n:1,title:'Initial Cloud Compromise',detail:'Compromise credentials or instance in one cloud provider (e.g., AWS access keys in a GitHub repo).',color:'var(--org)'},
+        {n:2,title:'Cross-Cloud Identity Discovery',detail:'Enumerate federated identities, OIDC providers, and cross-cloud trust relationships.',color:'var(--yel)'},
+        {n:3,title:'Federation Exploitation',detail:'Use compromised identity to authenticate to other cloud providers through SAML/OIDC federation.',color:'var(--red)'},
+        {n:4,title:'Shared Secret Discovery',detail:'Find credentials for other cloud providers in secrets managers, environment variables, or config files.',color:'var(--red)'},
+        {n:5,title:'Multi-Cloud Persistence',detail:'Establish access in all connected cloud environments. Create backdoor identities in each provider.',color:'var(--red)'}
+      ],
+      mitigations:['Centralized identity governance','Cross-cloud security monitoring','Minimize cross-cloud trust','Separate admin credentials per cloud','Implement CSPM across all providers'],
+      detection:['Cross-cloud authentication patterns','Federation token usage anomalies','New trust relationship creation','Credential usage across multiple clouds','Unusual API patterns post-federation'],
+      attck:['T1078.004','T1550.001','T1098']
+    }
+  ]
+};
+
+let state = { cloud: 'azure', view: 'scenarios', expanded: null };
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="header">
+      <h1><span>Cloud</span> Attack Path Simulator</h1>
+      <div class="cloud-tabs">
+        ${['azure','aws','gcp','hybrid'].map(c => `
+          <div class="cloud-tab ${state.cloud===c?'active-'+c:''}" onclick="setCloud('${c}')">${c==='azure'?'Azure':c==='aws'?'AWS':c==='gcp'?'GCP':'Hybrid/Multi'}</div>
+        `).join('')}
+      </div>
+      <div class="view-tabs">
+        <div class="vtab ${state.view==='scenarios'?'active':''}" onclick="setView('scenarios')">Attack Paths</div>
+        <div class="vtab ${state.view==='comparison'?'active':''}" onclick="setView('comparison')">Cloud Comparison</div>
+        <div class="vtab ${state.view==='defenses'?'active':''}" onclick="setView('defenses')">Defense Matrix</div>
+      </div>
+    </div>
+    <div class="main">${renderContent()}</div>
+  `;
+}
+
+function renderContent() {
+  if (state.view === 'comparison') return renderComparison();
+  if (state.view === 'defenses') return renderDefenses();
+  return renderScenarios();
+}
+
+function renderScenarios() {
+  const scenarios = SCENARIOS[state.cloud] || [];
+  const cloudLabel = state.cloud==='azure'?'Azure':state.cloud==='aws'?'AWS':state.cloud==='gcp'?'GCP':'Hybrid';
+  const cloudColor = state.cloud==='azure'?'var(--az)':state.cloud==='aws'?'var(--aws)':state.cloud==='gcp'?'var(--gcp)':'var(--pur)';
+
+  return `
+    <div class="stat-row">
+      <div class="stat"><div class="num" style="color:${cloudColor}">${scenarios.length}</div><div class="lbl">Attack Paths</div></div>
+      <div class="stat"><div class="num" style="color:var(--red)">${scenarios.filter(s=>s.severity==='critical').length}</div><div class="lbl">Critical</div></div>
+      <div class="stat"><div class="num" style="color:var(--grn)">${scenarios.reduce((a,s)=>a+s.mitigations.length,0)}</div><div class="lbl">Mitigations</div></div>
+      <div class="stat"><div class="num" style="color:var(--cyn)">${scenarios.reduce((a,s)=>a+s.detection.length,0)}</div><div class="lbl">Detections</div></div>
+    </div>
+    ${scenarios.map((s,i) => `
+      <div class="path-card">
+        <div class="path-header" onclick="toggleExpand(${i})">
+          <span class="badge ${s.severity==='critical'?'sev-c':'sev-h'}">${s.severity.toUpperCase()}</span>
+          <h4>${s.name}</h4>
+          <div style="display:flex;gap:4px">${s.tags.map(t => `<span class="tag t-${state.cloud==='azure'?'az':state.cloud==='aws'?'aws':state.cloud==='gcp'?'gcp':'pur'}">${t}</span>`).join('')}</div>
+          <span style="color:var(--t2);font-size:14px">${state.expanded===i?'\u25B2':'\u25BC'}</span>
+        </div>
+        <div class="path-body">
+          <p>${s.desc}</p>
+          <div style="margin-top:12px;font-size:11px;color:var(--t2)">ATT&CK: ${s.attck.map(a => `<span class="tag t-pur">${a}</span>`).join(' ')}</div>
+        </div>
+        <div class="detail-expand ${state.expanded===i?'show':''}">
+          <div style="margin-bottom:16px">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);margin-bottom:8px">Attack Chain</div>
+            <div class="flow-diagram">
+              ${s.steps.map((st,j) => `
+                ${j>0?'<div class="flow-arrow">\u2192</div>':''}
+                <div class="flow-node" style="border-left:3px solid ${st.color}">
+                  <div style="font-weight:600;font-size:10px;color:${st.color}">Step ${st.n}</div>
+                  <div>${st.title}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+          <div class="path-steps">
+            ${s.steps.map(st => `
+              <div class="path-step">
+                <div class="step-num" style="background:${st.color};color:#fff">${st.n}</div>
+                <div><strong>${st.title}</strong><br><span style="color:var(--t2)">${st.detail}</span></div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="grid2" style="margin-top:16px">
+            <div>
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);margin-bottom:8px">Mitigations</div>
+              ${s.mitigations.map(m => `<div style="font-size:11px;padding:3px 0;color:var(--grn)">+ ${m}</div>`).join('')}
+            </div>
+            <div>
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);margin-bottom:8px">Detection Strategies</div>
+              ${s.detection.map(d => `<div style="font-size:11px;padding:3px 0;color:var(--cyn)">+ ${d}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `).join('')}
+  `;
+}
+
+function renderComparison() {
+  return `
+    <div class="card">
+      <h3>Cloud Identity & Access Management Comparison</h3>
+      <table>
+        <tr><th>Concept</th><th style="color:var(--az)">Azure</th><th style="color:var(--aws)">AWS</th><th style="color:var(--gcp)">GCP</th></tr>
+        <tr><td>Identity Provider</td><td>Entra ID (Azure AD)</td><td>IAM</td><td>Cloud IAM</td></tr>
+        <tr><td>Workload Identity</td><td>Managed Identity</td><td>IAM Roles (Instance Profiles)</td><td>Service Accounts</td></tr>
+        <tr><td>Privilege Escalation Vector</td><td>App consent, PIM abuse</td><td>IAM policy manipulation</td><td>setIamPolicy, actAs</td></tr>
+        <tr><td>Metadata Service</td><td>IMDS (169.254.169.254)</td><td>IMDS v1/v2</td><td>metadata.google.internal</td></tr>
+        <tr><td>Temp Credentials</td><td>Managed Identity tokens</td><td>STS tokens</td><td>OAuth2 access tokens</td></tr>
+        <tr><td>Key Concern</td><td>Overly broad app permissions</td><td>Policy complexity/wildcards</td><td>Default SA with cloud-platform scope</td></tr>
+        <tr><td>Organization Control</td><td>Management Groups</td><td>Organizations + SCPs</td><td>Organization + Folder Policies</td></tr>
+        <tr><td>Red Team Tool</td><td>AzureHound, ROADtools</td><td>Pacu, ScoutSuite</td><td>GCPBucketBrute, ScoutSuite</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Cloud Storage Security Comparison</h3>
+      <table>
+        <tr><th>Feature</th><th style="color:var(--az)">Azure</th><th style="color:var(--aws)">AWS</th><th style="color:var(--gcp)">GCP</th></tr>
+        <tr><td>Object Storage</td><td>Blob Storage</td><td>S3</td><td>Cloud Storage</td></tr>
+        <tr><td>Public Access Risk</td><td>Anonymous blob access</td><td>Public bucket policies</td><td>allUsers/allAuthenticatedUsers</td></tr>
+        <tr><td>Encryption</td><td>SSE (Microsoft-managed, CMK)</td><td>SSE-S3, SSE-KMS, SSE-C</td><td>Google-managed, CMEK, CSEK</td></tr>
+        <tr><td>Access Control</td><td>Azure RBAC + SAS tokens</td><td>IAM + Bucket policies + ACLs</td><td>IAM + ACLs + Signed URLs</td></tr>
+        <tr><td>Common Misconfiguration</td><td>Overpermissive SAS tokens</td><td>Public bucket with sensitive data</td><td>allUsers read on buckets</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Cloud Network Security Comparison</h3>
+      <table>
+        <tr><th>Feature</th><th style="color:var(--az)">Azure</th><th style="color:var(--aws)">AWS</th><th style="color:var(--gcp)">GCP</th></tr>
+        <tr><td>Network Isolation</td><td>VNet</td><td>VPC</td><td>VPC</td></tr>
+        <tr><td>Firewall Rules</td><td>NSG + Azure Firewall</td><td>Security Groups + NACLs</td><td>Firewall Rules + Policies</td></tr>
+        <tr><td>Private Connectivity</td><td>Private Link/Endpoints</td><td>VPC Endpoints/PrivateLink</td><td>Private Google Access/Service Connect</td></tr>
+        <tr><td>DDoS Protection</td><td>Azure DDoS Protection</td><td>AWS Shield</td><td>Cloud Armor</td></tr>
+        <tr><td>DNS Security</td><td>Azure DNS + Private DNS</td><td>Route 53 + Resolver</td><td>Cloud DNS</td></tr>
+      </table>
+    </div>
+  `;
+}
+
+function renderDefenses() {
+  return `
+    <div class="card">
+      <h3>Cloud Security Defense Matrix</h3>
+      <table>
+        <tr><th>Attack Vector</th><th>Prevention</th><th>Detection</th><th>Response</th></tr>
+        <tr>
+          <td style="color:var(--red)">Credential Theft</td>
+          <td>MFA, passwordless auth, short-lived tokens</td>
+          <td>Impossible travel, anomalous login, UEBA</td>
+          <td>Automated token revocation, conditional access block</td>
+        </tr>
+        <tr>
+          <td style="color:var(--red)">Privilege Escalation</td>
+          <td>Least privilege, permission boundaries, SCPs</td>
+          <td>IAM policy change monitoring, role assumption alerts</td>
+          <td>Automated role reversion, incident response playbook</td>
+        </tr>
+        <tr>
+          <td style="color:var(--org)">Data Exfiltration</td>
+          <td>DLP, encryption, network restrictions</td>
+          <td>Anomalous data access, egress monitoring</td>
+          <td>Block exfil channels, forensic analysis</td>
+        </tr>
+        <tr>
+          <td style="color:var(--org)">Lateral Movement</td>
+          <td>Network segmentation, zero trust, micro-segmentation</td>
+          <td>East-west traffic analysis, identity analytics</td>
+          <td>Network isolation, credential rotation</td>
+        </tr>
+        <tr>
+          <td style="color:var(--yel)">Resource Abuse</td>
+          <td>Quotas, budgets, resource policies</td>
+          <td>Cost anomalies, resource creation monitoring</td>
+          <td>Resource termination, account suspension</td>
+        </tr>
+        <tr>
+          <td style="color:var(--yel)">Supply Chain</td>
+          <td>Image signing, SBOM, approved registries</td>
+          <td>Image scanning, admission controllers</td>
+          <td>Vulnerable workload isolation, patching</td>
+        </tr>
+      </table>
+    </div>
+    <div class="card">
+      <h3>Cloud Security Posture Management (CSPM) Tools</h3>
+      <div class="grid3">
+        <div style="background:var(--s2);padding:12px;border-radius:8px;border-left:3px solid var(--az)">
+          <h4 style="font-size:12px;color:var(--az);margin-bottom:4px">Microsoft Defender for Cloud</h4>
+          <p style="font-size:11px;color:var(--t2)">Multi-cloud CSPM with secure score, regulatory compliance, and attack path analysis. Covers Azure, AWS, and GCP.</p>
+        </div>
+        <div style="background:var(--s2);padding:12px;border-radius:8px;border-left:3px solid var(--aws)">
+          <h4 style="font-size:12px;color:var(--aws);margin-bottom:4px">AWS Security Hub</h4>
+          <p style="font-size:11px;color:var(--t2)">Centralized security findings from GuardDuty, Inspector, Macie, IAM Access Analyzer, and partner tools.</p>
+        </div>
+        <div style="background:var(--s2);padding:12px;border-radius:8px;border-left:3px solid var(--gcp)">
+          <h4 style="font-size:12px;color:var(--gcp);margin-bottom:4px">Security Command Center</h4>
+          <p style="font-size:11px;color:var(--t2)">GCP's native CSPM for vulnerability detection, threat detection, and compliance monitoring.</p>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Detection Engineering for Cloud</h3>
+      <div class="code-block" style="color:var(--cyn)">
+<span style="color:var(--t2)">// Example: Azure Sentinel KQL - Detect Privilege Escalation</span>
+<span style="color:var(--pur)">AuditLogs</span>
+| <span style="color:var(--yel)">where</span> OperationName == "Add member to role"
+| <span style="color:var(--yel)">where</span> Result == "success"
+| <span style="color:var(--yel)">extend</span> RoleName = tostring(TargetResources[0].modifiedProperties[1].newValue)
+| <span style="color:var(--yel)">where</span> RoleName has_any ("Global Administrator", "Privileged Role Administrator")
+| <span style="color:var(--yel)">project</span> TimeGenerated, InitiatedBy, RoleName, TargetResources
+| <span style="color:var(--yel)">sort by</span> TimeGenerated desc
+
+<span style="color:var(--t2)">// Example: AWS CloudTrail - Detect IAM Policy Manipulation</span>
+<span style="color:var(--pur)">SELECT</span> eventTime, userIdentity.arn, eventName, requestParameters
+<span style="color:var(--pur)">FROM</span> cloudtrail_logs
+<span style="color:var(--pur)">WHERE</span> eventName <span style="color:var(--yel)">IN</span> (
+  'CreatePolicyVersion', 'AttachUserPolicy', 'PutUserPolicy',
+  'AttachRolePolicy', 'PutRolePolicy', 'CreateRole'
+)
+<span style="color:var(--pur)">AND</span> errorCode IS NULL
+<span style="color:var(--pur)">ORDER BY</span> eventTime DESC
+
+<span style="color:var(--t2)">// Example: GCP Cloud Logging - Detect SA Key Creation</span>
+resource.type="iam_role" OR resource.type="service_account"
+protoPayload.methodName=(
+  "google.iam.admin.v1.CreateServiceAccountKey" OR
+  "google.iam.admin.v1.SetIamPolicy"
+)
+severity>=WARNING
+      </div>
+    </div>
+  `;
+}
+
+function setCloud(c) { state.cloud = c; state.expanded = null; render(); }
+function setView(v) { state.view = v; render(); }
+function toggleExpand(i) { state.expanded = state.expanded === i ? null : i; render(); }
+
+render();
+</script>
+</body>
+</html>

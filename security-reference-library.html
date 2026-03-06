@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security Expert Reference Library</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0b0e14;--s1:#12161f;--s2:#1a1f2e;--s3:#242b3d;--bd:#2d3548;--t1:#e0e4ed;--t2:#8891a8;--ac:#f59e0b;--ac2:#fbbf24;--red:#ef4444;--org:#fb923c;--grn:#22c55e;--blue:#3b82f6;--pur:#8b5cf6;--cyn:#06b6d4;--pink:#ec4899}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+.app{display:flex;height:100vh}
+.sidebar{width:240px;background:var(--s1);border-right:1px solid var(--bd);overflow-y:auto;flex-shrink:0;padding:12px}
+.sidebar h2{font-size:13px;padding:8px;color:var(--ac);display:flex;align-items:center;gap:6px}
+.nav-item{padding:8px 12px;border-radius:6px;cursor:pointer;font-size:12px;color:var(--t2);transition:all .15s;margin:1px 0}
+.nav-item:hover{background:var(--s2);color:var(--t1)}
+.nav-item.active{background:rgba(245,158,11,.1);color:var(--ac)}
+.nav-section{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--t2);padding:12px 12px 4px;margin-top:8px}
+.content{flex:1;overflow-y:auto;padding:24px}
+.content h2{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--ac)}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h3{font-size:14px;margin-bottom:10px;color:var(--t1)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--bd)}
+th{color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.5px;background:var(--s2)}
+.tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:10px;margin:1px}
+.t-red{background:rgba(239,68,68,.12);color:var(--red)}
+.t-org{background:rgba(251,146,60,.12);color:var(--org)}
+.t-grn{background:rgba(34,197,94,.12);color:var(--grn)}
+.t-blue{background:rgba(59,130,246,.12);color:var(--blue)}
+.t-pur{background:rgba(139,92,246,.12);color:var(--pur)}
+.t-cyn{background:rgba(6,182,212,.12);color:var(--cyn)}
+.t-ac{background:rgba(245,158,11,.12);color:var(--ac)}
+.cheat{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:10px;margin:4px 0;font-size:11px;line-height:1.6}
+.cheat h4{font-size:11px;color:var(--ac);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.cmd{font-family:'SF Mono','Fira Code',monospace;background:var(--bg);padding:2px 6px;border-radius:3px;font-size:10px;color:var(--cyn)}
+.section-divider{border-top:1px solid var(--bd);margin:16px 0}
+.quick-ref{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sidebar">
+  <h2>Reference Library</h2>
+  <div class="nav-section">Core Frameworks</div>
+  <div class="nav-item active" onclick="showSection('attck')">MITRE ATT&CK Cheat Sheet</div>
+  <div class="nav-item" onclick="showSection('stride')">STRIDE Quick Reference</div>
+  <div class="nav-item" onclick="showSection('killchain')">Kill Chain & Models</div>
+  <div class="nav-section">Attack Techniques</div>
+  <div class="nav-item" onclick="showSection('windows')">Windows Internals</div>
+  <div class="nav-item" onclick="showSection('linux')">Linux Security</div>
+  <div class="nav-item" onclick="showSection('ad')">Active Directory</div>
+  <div class="nav-item" onclick="showSection('kerberos')">Kerberos Attacks</div>
+  <div class="nav-section">Cloud Security</div>
+  <div class="nav-item" onclick="showSection('azuread')">Azure / Entra ID</div>
+  <div class="nav-item" onclick="showSection('awsiam')">AWS IAM</div>
+  <div class="nav-item" onclick="showSection('k8s')">Kubernetes Security</div>
+  <div class="nav-section">AI/ML Security</div>
+  <div class="nav-item" onclick="showSection('llmsec')">LLM Security</div>
+  <div class="nav-item" onclick="showSection('atlas')">MITRE ATLAS</div>
+  <div class="nav-section">Detection & Response</div>
+  <div class="nav-item" onclick="showSection('detection')">Detection Engineering</div>
+  <div class="nav-item" onclick="showSection('tools')">Red Team Tools</div>
+  <div class="nav-item" onclick="showSection('vocab')">Security Vocabulary</div>
+</div>
+<div class="content" id="content"></div>
+</div>
+<script>
+const sections = {
+attck: `
+<h2>MITRE ATT&CK Quick Reference</h2>
+<div class="card">
+  <h3>Tactic Overview (Enterprise)</h3>
+  <table>
+    <tr><th>ID</th><th>Tactic</th><th>Purpose</th><th>Key Techniques</th></tr>
+    <tr><td>TA0043</td><td>Reconnaissance</td><td>Gathering target information</td><td>Active Scanning, OSINT, Victim Identity Info</td></tr>
+    <tr><td>TA0042</td><td>Resource Development</td><td>Building attack infrastructure</td><td>Acquire Infrastructure, Develop Capabilities</td></tr>
+    <tr><td>TA0001</td><td>Initial Access</td><td>Getting into the network</td><td>Phishing, Exploit Public Apps, Valid Accounts</td></tr>
+    <tr><td>TA0002</td><td>Execution</td><td>Running malicious code</td><td>PowerShell, WMI, Scheduled Tasks</td></tr>
+    <tr><td>TA0003</td><td>Persistence</td><td>Maintaining access</td><td>Registry Run Keys, Scheduled Tasks, Web Shells</td></tr>
+    <tr><td>TA0004</td><td>Privilege Escalation</td><td>Getting higher permissions</td><td>Exploitation, UAC Bypass, Token Manipulation</td></tr>
+    <tr><td>TA0005</td><td>Defense Evasion</td><td>Avoiding detection</td><td>Obfuscation, Process Injection, Disable Defenses</td></tr>
+    <tr><td>TA0006</td><td>Credential Access</td><td>Stealing credentials</td><td>LSASS Dump, Kerberoasting, Brute Force</td></tr>
+    <tr><td>TA0007</td><td>Discovery</td><td>Understanding the environment</td><td>Network Scan, AD Enumeration, File Discovery</td></tr>
+    <tr><td>TA0008</td><td>Lateral Movement</td><td>Moving through the network</td><td>RDP, SMB, Pass-the-Hash</td></tr>
+    <tr><td>TA0009</td><td>Collection</td><td>Gathering target data</td><td>Data from Local System, Email Collection</td></tr>
+    <tr><td>TA0011</td><td>Command & Control</td><td>Communicating with implants</td><td>HTTPS C2, DNS Tunneling, Protocol Tunneling</td></tr>
+    <tr><td>TA0010</td><td>Exfiltration</td><td>Stealing data out</td><td>Exfil Over C2, Web Services, Alt Protocol</td></tr>
+    <tr><td>TA0040</td><td>Impact</td><td>Disruption and destruction</td><td>Ransomware, Service Stop, Wiper</td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>Top 10 Most Common Techniques (Enterprise)</h3>
+  <table>
+    <tr><th>#</th><th>Technique</th><th>Why It Matters</th></tr>
+    <tr><td>1</td><td>T1059 Command & Scripting Interpreter</td><td>PowerShell is the #1 attacker tool on Windows</td></tr>
+    <tr><td>2</td><td>T1078 Valid Accounts</td><td>Credential-based attacks dominate cloud breaches</td></tr>
+    <tr><td>3</td><td>T1566 Phishing</td><td>70%+ of breaches start with phishing</td></tr>
+    <tr><td>4</td><td>T1055 Process Injection</td><td>Core defense evasion used by nearly all malware</td></tr>
+    <tr><td>5</td><td>T1003 OS Credential Dumping</td><td>Mimikatz/LSASS dumping is ubiquitous</td></tr>
+    <tr><td>6</td><td>T1021 Remote Services</td><td>RDP/SMB lateral movement in every ransomware</td></tr>
+    <tr><td>7</td><td>T1027 Obfuscated Files</td><td>Packing, encoding, HTML smuggling everywhere</td></tr>
+    <tr><td>8</td><td>T1547 Boot/Logon Autostart</td><td>Most common persistence mechanism</td></tr>
+    <tr><td>9</td><td>T1486 Data Encrypted for Impact</td><td>Core ransomware functionality</td></tr>
+    <tr><td>10</td><td>T1190 Exploit Public-Facing App</td><td>Log4Shell, ProxyLogon, MOVEit</td></tr>
+  </table>
+</div>`,
+
+stride: `
+<h2>STRIDE Threat Modeling</h2>
+<div class="card">
+  <h3>STRIDE Categories</h3>
+  <table>
+    <tr><th>Letter</th><th>Threat</th><th>Violated Property</th><th>Example</th><th>Mitigation</th></tr>
+    <tr><td style="color:var(--red);font-weight:700">S</td><td>Spoofing</td><td>Authentication</td><td>Token replay, session hijacking</td><td>MFA, certificate pinning, mutual TLS</td></tr>
+    <tr><td style="color:var(--org);font-weight:700">T</td><td>Tampering</td><td>Integrity</td><td>SQL injection, MITM, config change</td><td>Input validation, code signing, integrity monitoring</td></tr>
+    <tr><td style="color:var(--ac);font-weight:700">R</td><td>Repudiation</td><td>Non-repudiation</td><td>Log deletion, unsigned transactions</td><td>Secure logging, digital signatures, audit trails</td></tr>
+    <tr><td style="color:var(--grn);font-weight:700">I</td><td>Info Disclosure</td><td>Confidentiality</td><td>Data breach, memory leak, side-channel</td><td>Encryption, access controls, DLP</td></tr>
+    <tr><td style="color:var(--blue);font-weight:700">D</td><td>Denial of Service</td><td>Availability</td><td>DDoS, resource exhaustion, crash bugs</td><td>Rate limiting, auto-scaling, CDN</td></tr>
+    <tr><td style="color:var(--pur);font-weight:700">E</td><td>Elevation of Privilege</td><td>Authorization</td><td>Buffer overflow, IDOR, container escape</td><td>Least privilege, input validation, sandboxing</td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>Threat Modeling Process</h3>
+  <div class="cheat"><h4>Step 1: Define Scope</h4>Identify system boundaries, components, data flows, trust boundaries, and external dependencies.</div>
+  <div class="cheat"><h4>Step 2: Create Data Flow Diagram</h4>Map processes, data stores, data flows, trust boundaries, and external entities.</div>
+  <div class="cheat"><h4>Step 3: Apply STRIDE per Element</h4>For each DFD element, systematically check all 6 STRIDE categories.</div>
+  <div class="cheat"><h4>Step 4: Risk Assessment</h4>Use DREAD or risk matrix to prioritize threats by likelihood and impact.</div>
+  <div class="cheat"><h4>Step 5: Define Mitigations</h4>Map specific countermeasures to each identified threat. Accept, mitigate, transfer, or avoid.</div>
+  <div class="cheat"><h4>Step 6: Validate</h4>Review with stakeholders, pen test, and iterate. Threat models are living documents.</div>
+</div>`,
+
+killchain: `
+<h2>Attack Models & Frameworks</h2>
+<div class="card">
+  <h3>Lockheed Martin Cyber Kill Chain</h3>
+  <table>
+    <tr><th>#</th><th>Phase</th><th>Attacker Activity</th><th>Defender Action</th></tr>
+    <tr><td>1</td><td>Reconnaissance</td><td>OSINT, scanning, social engineering</td><td>OSINT monitoring, honeypots</td></tr>
+    <tr><td>2</td><td>Weaponization</td><td>Create exploit, build payload</td><td>Threat intelligence, YARA rules</td></tr>
+    <tr><td>3</td><td>Delivery</td><td>Phishing, watering hole, USB</td><td>Email filtering, WAF, endpoint protection</td></tr>
+    <tr><td>4</td><td>Exploitation</td><td>Trigger vulnerability</td><td>Patching, DEP, ASLR, sandboxing</td></tr>
+    <tr><td>5</td><td>Installation</td><td>Backdoor, persistence</td><td>Application allowlisting, HIDS</td></tr>
+    <tr><td>6</td><td>Command & Control</td><td>C2 channel establishment</td><td>NIDS, egress filtering, DNS monitoring</td></tr>
+    <tr><td>7</td><td>Actions on Objectives</td><td>Data theft, destruction, ransom</td><td>DLP, encryption, backups, UEBA</td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>Diamond Model of Intrusion Analysis</h3>
+  <div class="cheat"><h4>Four Core Features</h4>
+    Adversary - Infrastructure - Capability - Victim<br>
+    Each intrusion event maps to these four vertices. Pivoting between them drives threat intelligence analysis.
+  </div>
+  <div class="grid2">
+    <div class="cheat"><h4>Adversary</h4>Who: Threat actor, group, nation-state. Track TTPs, motivations, targeting patterns.</div>
+    <div class="cheat"><h4>Infrastructure</h4>What they use: C2 servers, domains, IPs, cloud accounts, compromised hosts.</div>
+    <div class="cheat"><h4>Capability</h4>Their tools: Malware, exploits, scripts, frameworks (Cobalt Strike, Metasploit).</div>
+    <div class="cheat"><h4>Victim</h4>Target: Organization, individual, system, network, data asset.</div>
+  </div>
+</div>`,
+
+windows: `
+<h2>Windows Internals for Security</h2>
+<div class="card">
+  <h3>Process Injection Techniques</h3>
+  <table>
+    <tr><th>Technique</th><th>API Calls</th><th>Detection</th></tr>
+    <tr><td>Classic DLL Injection</td><td><span class="cmd">OpenProcess</span> <span class="cmd">VirtualAllocEx</span> <span class="cmd">WriteProcessMemory</span> <span class="cmd">CreateRemoteThread</span></td><td>Cross-process handle, remote thread creation</td></tr>
+    <tr><td>Reflective DLL Injection</td><td>Manual PE mapping, no <span class="cmd">LoadLibrary</span></td><td>RWX memory regions, PE headers in memory</td></tr>
+    <tr><td>Process Hollowing</td><td><span class="cmd">CreateProcess(SUSPENDED)</span> <span class="cmd">NtUnmapViewOfSection</span> <span class="cmd">WriteProcessMemory</span></td><td>Suspended process, image unmapping</td></tr>
+    <tr><td>APC Injection</td><td><span class="cmd">QueueUserAPC</span> to alertable thread</td><td>APC queue monitoring, thread state analysis</td></tr>
+    <tr><td>Thread Hijacking</td><td><span class="cmd">SuspendThread</span> <span class="cmd">SetThreadContext</span> <span class="cmd">ResumeThread</span></td><td>Thread context modification, RIP changes</td></tr>
+    <tr><td>Direct Syscalls</td><td>Manual syscall stubs (SysWhispers)</td><td>Stack-based detection, ETW Ti provider</td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>Key Windows Security Mechanisms</h3>
+  <div class="grid2">
+    <div class="cheat"><h4>AMSI (Antimalware Scan Interface)</h4>Hooks script interpreters (PowerShell, VBScript, JScript). Scans content before execution. Bypass: memory patching, obfuscation.</div>
+    <div class="cheat"><h4>ETW (Event Tracing for Windows)</h4>Kernel-level event system. Microsoft-Windows-Threat-Intelligence provider for security events. Hard to bypass from usermode.</div>
+    <div class="cheat"><h4>PPL (Protected Process Light)</h4>Kernel-enforced process protection. Prevents memory access to protected processes (LSASS, AV). Bypass: driver exploits, PPLKiller.</div>
+    <div class="cheat"><h4>Credential Guard</h4>Virtualization-based security isolating LSASS. Prevents credential dumping from memory. Requires VBS-capable hardware.</div>
+    <div class="cheat"><h4>WDAC / AppLocker</h4>Application control policies. WDAC is kernel-enforced, AppLocker is user-mode. Bypass: LOLBAS, signed binary abuse.</div>
+    <div class="cheat"><h4>UAC (User Account Control)</h4>Elevation prompt for admin actions. Many bypass techniques exist (fodhelper, eventvwr, sdclt). Not a security boundary.</div>
+  </div>
+</div>`,
+
+linux: `
+<h2>Linux Security Reference</h2>
+<div class="card">
+  <h3>Privilege Escalation Vectors</h3>
+  <table>
+    <tr><th>Vector</th><th>Check</th><th>Exploit</th></tr>
+    <tr><td>SUID Binaries</td><td><span class="cmd">find / -perm -4000 2>/dev/null</span></td><td>GTFOBins for exploitable SUID binaries</td></tr>
+    <tr><td>Sudo Misconfig</td><td><span class="cmd">sudo -l</span></td><td>Sudo rules allowing shell escape or command injection</td></tr>
+    <tr><td>Capabilities</td><td><span class="cmd">getcap -r / 2>/dev/null</span></td><td>CAP_SETUID, CAP_NET_RAW abuse</td></tr>
+    <tr><td>Cron Jobs</td><td><span class="cmd">cat /etc/crontab; ls /etc/cron.*</span></td><td>Writable cron scripts, PATH hijacking</td></tr>
+    <tr><td>Kernel Exploits</td><td><span class="cmd">uname -a</span></td><td>Dirty Pipe (CVE-2022-0847), PwnKit (CVE-2021-4034)</td></tr>
+    <tr><td>Docker Socket</td><td><span class="cmd">ls -la /var/run/docker.sock</span></td><td>Mount host filesystem via container</td></tr>
+    <tr><td>Writable /etc/passwd</td><td><span class="cmd">ls -la /etc/passwd</span></td><td>Add root-equivalent user</td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>Linux Security Mechanisms</h3>
+  <div class="grid2">
+    <div class="cheat"><h4>SELinux</h4>Mandatory Access Control. Enforces security policies on processes and files beyond DAC. Modes: Enforcing, Permissive, Disabled.</div>
+    <div class="cheat"><h4>AppArmor</h4>Profile-based MAC. Simpler than SELinux. Per-application profiles restrict file access, capabilities, network.</div>
+    <div class="cheat"><h4>seccomp</h4>System call filtering. Restricts which syscalls a process can make. Used heavily in containers.</div>
+    <div class="cheat"><h4>namespaces & cgroups</h4>Foundation of container isolation. PID, network, mount, user namespaces. cgroups limit resources.</div>
+  </div>
+</div>`,
+
+ad: `
+<h2>Active Directory Attack Reference</h2>
+<div class="card">
+  <h3>AD Attack Chain (Common Path)</h3>
+  <div class="cheat"><h4>1. Enumeration</h4><span class="cmd">BloodHound</span> <span class="cmd">SharpHound</span> <span class="cmd">PowerView</span> - Map users, groups, GPOs, trusts, ACLs, sessions</div>
+  <div class="cheat"><h4>2. Credential Harvesting</h4><span class="cmd">Mimikatz</span> <span class="cmd">Rubeus</span> - LSASS dump, Kerberoasting, AS-REP roasting</div>
+  <div class="cheat"><h4>3. Lateral Movement</h4>Pass-the-Hash, Pass-the-Ticket, Overpass-the-Hash, RDP, WMI, PSRemoting</div>
+  <div class="cheat"><h4>4. Privilege Escalation</h4>ACL abuse, GPO modification, constrained/unconstrained delegation, PrintNightmare</div>
+  <div class="cheat"><h4>5. Domain Dominance</h4>DCSync, Golden/Silver Ticket, Skeleton Key, DCShadow, AdminSDHolder abuse</div>
+  <div class="cheat"><h4>6. Persistence</h4>Golden Ticket (krbtgt), Silver Ticket, SID History injection, AdminSDHolder, GPO backdoor</div>
+</div>
+<div class="card">
+  <h3>Critical AD Objects & Paths</h3>
+  <table>
+    <tr><th>Object</th><th>Why It Matters</th><th>Attack</th></tr>
+    <tr><td>krbtgt account</td><td>TGT encryption key</td><td>Golden Ticket (forge any TGT)</td></tr>
+    <tr><td>Domain Admins</td><td>Full domain control</td><td>Target for escalation</td></tr>
+    <tr><td>AdminSDHolder</td><td>Protects admin objects ACLs</td><td>ACL backdoor via SDProp</td></tr>
+    <tr><td>GPO</td><td>Domain-wide policy</td><td>Malicious GPO for code execution</td></tr>
+    <tr><td>ADCS (Certificate Services)</td><td>PKI infrastructure</td><td>ESC1-ESC8 certificate attacks</td></tr>
+    <tr><td>Azure AD Connect</td><td>Cloud sync service</td><td>Extract sync credentials for cloud pivot</td></tr>
+  </table>
+</div>`,
+
+kerberos: `
+<h2>Kerberos Attack Reference</h2>
+<div class="card">
+  <h3>Kerberos Authentication Flow</h3>
+  <div class="cheat"><h4>1. AS-REQ / AS-REP</h4>Client requests TGT from KDC. Encrypted with user's password hash. KDC returns TGT encrypted with krbtgt hash.</div>
+  <div class="cheat"><h4>2. TGS-REQ / TGS-REP</h4>Client presents TGT, requests service ticket. KDC returns TGS encrypted with service account hash.</div>
+  <div class="cheat"><h4>3. AP-REQ / AP-REP</h4>Client presents TGS to service. Service decrypts with its own hash to validate.</div>
+</div>
+<div class="card">
+  <h3>Kerberos Attacks</h3>
+  <table>
+    <tr><th>Attack</th><th>What</th><th>Requirement</th><th>Tool</th></tr>
+    <tr><td style="color:var(--red)">Golden Ticket</td><td>Forge any TGT</td><td>krbtgt hash</td><td><span class="cmd">Mimikatz</span> <span class="cmd">Rubeus</span></td></tr>
+    <tr><td style="color:var(--org)">Silver Ticket</td><td>Forge service ticket</td><td>Service account hash</td><td><span class="cmd">Mimikatz</span> <span class="cmd">Rubeus</span></td></tr>
+    <tr><td style="color:var(--ac)">Kerberoasting</td><td>Crack service account passwords</td><td>Any domain user</td><td><span class="cmd">Rubeus</span> <span class="cmd">GetUserSPNs</span></td></tr>
+    <tr><td style="color:var(--blue)">AS-REP Roasting</td><td>Crack accounts without pre-auth</td><td>User list</td><td><span class="cmd">Rubeus</span> <span class="cmd">GetNPUsers</span></td></tr>
+    <tr><td style="color:var(--pur)">Constrained Delegation</td><td>Impersonate any user to specific service</td><td>Account with delegation</td><td><span class="cmd">Rubeus</span> s4u</td></tr>
+    <tr><td style="color:var(--cyn)">Unconstrained Delegation</td><td>Capture TGTs from connecting users</td><td>Server with unconstrained deleg</td><td><span class="cmd">Rubeus</span> monitor</td></tr>
+    <tr><td style="color:var(--pink)">Diamond Ticket</td><td>Modify legitimate TGT</td><td>krbtgt hash + AES key</td><td><span class="cmd">Rubeus</span> diamond</td></tr>
+  </table>
+</div>`,
+
+azuread: `
+<h2>Azure / Entra ID Security Reference</h2>
+<div class="card">
+  <h3>Azure AD Attack Paths</h3>
+  <table>
+    <tr><th>Vector</th><th>Description</th><th>Impact</th></tr>
+    <tr><td>Application Consent Phishing</td><td>Trick user into granting OAuth permissions to malicious app</td><td>Data access, email reading, persistence</td></tr>
+    <tr><td>PIM Role Abuse</td><td>Activate eligible admin roles without proper approval</td><td>Temporary admin access, privilege escalation</td></tr>
+    <tr><td>Conditional Access Bypass</td><td>Exploit gaps in CA policies (legacy auth, trusted locations)</td><td>Unauthorized access bypassing MFA</td></tr>
+    <tr><td>Service Principal Abuse</td><td>Compromise SP credentials for API access</td><td>Persistent API access, data exfiltration</td></tr>
+    <tr><td>Managed Identity Exploitation</td><td>Steal tokens from IMDS on compromised VMs</td><td>Cross-resource access, lateral movement</td></tr>
+    <tr><td>Azure AD Connect Compromise</td><td>Extract sync credentials from AAD Connect server</td><td>On-prem to cloud pivot, password manipulation</td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>Azure Security Tools & Commands</h3>
+  <div class="grid2">
+    <div class="cheat"><h4>Enumeration</h4><span class="cmd">AzureHound</span> - BloodHound for Azure<br><span class="cmd">ROADtools</span> - Azure AD exploration<br><span class="cmd">az ad</span> - Azure CLI for AD ops<br><span class="cmd">MicroBurst</span> - Azure recon framework</div>
+    <div class="cheat"><h4>Key Detections (Sentinel KQL)</h4>AuditLogs | where OperationName has "consent"<br>SignInLogs | where ConditionalAccessStatus == "notApplied"<br>AzureActivity | where OperationNameValue has "roleAssignment"</div>
+  </div>
+</div>`,
+
+awsiam: `
+<h2>AWS IAM Security Reference</h2>
+<div class="card">
+  <h3>IAM Privilege Escalation Paths</h3>
+  <table>
+    <tr><th>Permission</th><th>Escalation Method</th><th>Risk</th></tr>
+    <tr><td><span class="cmd">iam:CreatePolicyVersion</span></td><td>Create new policy version with admin perms</td><td><span class="tag t-red">Critical</span></td></tr>
+    <tr><td><span class="cmd">iam:AttachUserPolicy</span></td><td>Attach AdministratorAccess to self</td><td><span class="tag t-red">Critical</span></td></tr>
+    <tr><td><span class="cmd">iam:PutUserPolicy</span></td><td>Add inline admin policy to self</td><td><span class="tag t-red">Critical</span></td></tr>
+    <tr><td><span class="cmd">iam:PassRole</span> + service</td><td>Pass admin role to service (Lambda, EC2)</td><td><span class="tag t-red">Critical</span></td></tr>
+    <tr><td><span class="cmd">sts:AssumeRole</span></td><td>Assume role with higher privileges</td><td><span class="tag t-org">High</span></td></tr>
+    <tr><td><span class="cmd">lambda:CreateFunction</span></td><td>Create function with privileged role</td><td><span class="tag t-org">High</span></td></tr>
+    <tr><td><span class="cmd">ec2:RunInstances</span></td><td>Launch instance with privileged profile</td><td><span class="tag t-org">High</span></td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>AWS Security Tools</h3>
+  <div class="grid2">
+    <div class="cheat"><h4>Offensive</h4><span class="cmd">Pacu</span> - AWS exploitation framework<br><span class="cmd">ScoutSuite</span> - Multi-cloud security audit<br><span class="cmd">enumerate-iam</span> - Brute-force IAM permissions<br><span class="cmd">Prowler</span> - AWS security assessments</div>
+    <div class="cheat"><h4>Detective Controls</h4><span class="cmd">CloudTrail</span> - API activity logging<br><span class="cmd">GuardDuty</span> - Threat detection<br><span class="cmd">Access Analyzer</span> - IAM policy analysis<br><span class="cmd">Config</span> - Resource compliance</div>
+  </div>
+</div>`,
+
+k8s: `
+<h2>Kubernetes Security Reference</h2>
+<div class="card">
+  <h3>K8s Threat Matrix</h3>
+  <table>
+    <tr><th>Category</th><th>Threat</th><th>Mitigation</th></tr>
+    <tr><td>Initial Access</td><td>Exposed dashboard, API server, registry</td><td>Network policies, RBAC, private clusters</td></tr>
+    <tr><td>Execution</td><td>Malicious container, exec into pod</td><td>Pod security standards, admission controllers</td></tr>
+    <tr><td>Persistence</td><td>Backdoor container, writable hostPath</td><td>Image signing, read-only root FS</td></tr>
+    <tr><td>Privilege Escalation</td><td>Privileged container, hostPID, SYS_ADMIN</td><td>Security contexts, no root, drop capabilities</td></tr>
+    <tr><td>Defense Evasion</td><td>Clear K8s audit logs, pod deletion</td><td>Centralized logging, immutable audit</td></tr>
+    <tr><td>Credential Access</td><td>Mount service account tokens, etcd access</td><td>Disable automount, encrypt etcd</td></tr>
+    <tr><td>Lateral Movement</td><td>Access other pods/namespaces/nodes</td><td>Network policies, namespace isolation</td></tr>
+    <tr><td>Impact</td><td>Cryptomining, data destruction, DoS</td><td>Resource quotas, monitoring, backups</td></tr>
+  </table>
+</div>`,
+
+llmsec: `
+<h2>LLM Security Quick Reference</h2>
+<div class="card">
+  <h3>OWASP Top 10 for LLM Applications</h3>
+  <table>
+    <tr><th>#</th><th>Vulnerability</th><th>Attack</th><th>Defense</th></tr>
+    <tr><td>1</td><td>Prompt Injection</td><td>Override system prompt, indirect via documents</td><td>Input filtering, instruction hierarchy, output monitoring</td></tr>
+    <tr><td>2</td><td>Insecure Output</td><td>XSS/SSRF via LLM output</td><td>Output sanitization, treat as untrusted</td></tr>
+    <tr><td>3</td><td>Training Data Poisoning</td><td>Backdoor via training data</td><td>Data provenance, cleaning, behavioral testing</td></tr>
+    <tr><td>4</td><td>Model DoS</td><td>Resource exhaustion via crafted prompts</td><td>Rate limiting, input validation, timeouts</td></tr>
+    <tr><td>5</td><td>Supply Chain</td><td>Compromised models, plugins, data</td><td>Model signing, SBOM, plugin sandboxing</td></tr>
+    <tr><td>6</td><td>Sensitive Info Disclosure</td><td>PII extraction, training data leakage</td><td>Differential privacy, output filtering, PII detection</td></tr>
+    <tr><td>7</td><td>Insecure Plugin Design</td><td>Excessive permissions on tools</td><td>Least privilege, confirmation flows</td></tr>
+    <tr><td>8</td><td>Excessive Agency</td><td>LLM takes unauthorized actions</td><td>Human-in-loop, action boundaries</td></tr>
+    <tr><td>9</td><td>Overreliance</td><td>Trust hallucinated outputs</td><td>Verification workflows, confidence scoring</td></tr>
+    <tr><td>10</td><td>Model Theft</td><td>API extraction, side-channel</td><td>Rate limiting, watermarking, access controls</td></tr>
+  </table>
+</div>`,
+
+atlas: `
+<h2>MITRE ATLAS (AI Threat Landscape)</h2>
+<div class="card">
+  <h3>ATLAS Tactic Overview</h3>
+  <table>
+    <tr><th>Tactic</th><th>Description</th><th>Key Techniques</th></tr>
+    <tr><td>Reconnaissance</td><td>Gathering info about ML system</td><td>Victim research, model documentation</td></tr>
+    <tr><td>Resource Development</td><td>Building attack capabilities</td><td>Adversarial example generation, poisoning tools</td></tr>
+    <tr><td>Initial Access</td><td>Getting into ML pipeline</td><td>Supply chain, API access, insider</td></tr>
+    <tr><td>ML Attack Staging</td><td>Preparing ML-specific attacks</td><td>Backdoor insertion, poisoning, craft adversarial inputs</td></tr>
+    <tr><td>ML Model Access</td><td>Interacting with target model</td><td>API queries, physical-world attacks, side-channels</td></tr>
+    <tr><td>Exfiltration</td><td>Extracting ML artifacts</td><td>Model extraction, training data extraction</td></tr>
+    <tr><td>Impact</td><td>Disrupting ML systems</td><td>Evasion, denial of service, model repurposing</td></tr>
+  </table>
+</div>`,
+
+detection: `
+<h2>Detection Engineering Reference</h2>
+<div class="card">
+  <h3>Detection Maturity Model</h3>
+  <table>
+    <tr><th>Level</th><th>Capability</th><th>Description</th></tr>
+    <tr><td style="color:var(--red)">0 - None</td><td>No detection</td><td>Relying entirely on prevention controls</td></tr>
+    <tr><td style="color:var(--org)">1 - Reactive</td><td>IOC-based</td><td>Known-bad signatures, hash matching, IP blocklists</td></tr>
+    <tr><td style="color:var(--ac)">2 - Proactive</td><td>Behavioral</td><td>TTP-based detections, anomaly detection, UEBA</td></tr>
+    <tr><td style="color:var(--grn)">3 - Advanced</td><td>Threat hunting</td><td>Hypothesis-driven hunting, custom analytics, ML-based</td></tr>
+    <tr><td style="color:var(--blue)">4 - Optimized</td><td>Automated response</td><td>SOAR playbooks, auto-containment, continuous validation</td></tr>
+  </table>
+</div>
+<div class="card">
+  <h3>Key Data Sources for Detection</h3>
+  <div class="grid2">
+    <div class="cheat"><h4>Endpoint</h4>Process creation (Sysmon 1), network connections (Sysmon 3), file creation (Sysmon 11), registry (Sysmon 13), PowerShell Script Block (4104), AMSI (1116)</div>
+    <div class="cheat"><h4>Network</h4>DNS logs, proxy/firewall logs, flow data (NetFlow/IPFIX), TLS metadata, IDS/IPS alerts, email gateway</div>
+    <div class="cheat"><h4>Identity</h4>Authentication logs (4624/4625), Kerberos events (4768/4769), group changes (4728), logon type analysis</div>
+    <div class="cheat"><h4>Cloud</h4>Azure: Activity/Sign-in logs, Defender alerts. AWS: CloudTrail, VPC Flow Logs. GCP: Cloud Audit Logs</div>
+  </div>
+</div>
+<div class="card">
+  <h3>Sigma Rule Format (Quick Reference)</h3>
+  <div class="cheat" style="font-family:monospace;font-size:10px">title: Suspicious PowerShell Execution<br>status: production<br>logsource:<br>&nbsp;&nbsp;product: windows<br>&nbsp;&nbsp;service: powershell<br>detection:<br>&nbsp;&nbsp;selection:<br>&nbsp;&nbsp;&nbsp;&nbsp;ScriptBlockText|contains:<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- 'Invoke-Mimikatz'<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- 'Invoke-Expression'<br>&nbsp;&nbsp;condition: selection<br>level: high</div>
+</div>`,
+
+tools: `
+<h2>Security Tools Reference</h2>
+<div class="card">
+  <h3>Red Team / Offensive Tools</h3>
+  <table>
+    <tr><th>Category</th><th>Tool</th><th>Purpose</th></tr>
+    <tr><td rowspan="3">C2 Frameworks</td><td><span class="cmd">Cobalt Strike</span></td><td>Commercial adversary simulation, beacon implant</td></tr>
+    <tr><td><span class="cmd">Sliver</span></td><td>Open-source C2 framework (BishopFox)</td></tr>
+    <tr><td><span class="cmd">Mythic</span></td><td>Modular C2 framework with multiple agents</td></tr>
+    <tr><td rowspan="3">AD Tools</td><td><span class="cmd">BloodHound</span></td><td>AD/Azure attack path visualization</td></tr>
+    <tr><td><span class="cmd">Mimikatz</span></td><td>Credential extraction, Kerberos attacks</td></tr>
+    <tr><td><span class="cmd">Rubeus</span></td><td>Kerberos toolset (.NET)</td></tr>
+    <tr><td rowspan="3">Cloud</td><td><span class="cmd">Pacu</span></td><td>AWS exploitation framework</td></tr>
+    <tr><td><span class="cmd">AzureHound</span></td><td>Azure AD data collection for BloodHound</td></tr>
+    <tr><td><span class="cmd">ScoutSuite</span></td><td>Multi-cloud security auditing</td></tr>
+    <tr><td rowspan="3">Network</td><td><span class="cmd">Impacket</span></td><td>Python network protocol toolkit</td></tr>
+    <tr><td><span class="cmd">Responder</span></td><td>LLMNR/NBT-NS/MDNS poisoner</td></tr>
+    <tr><td><span class="cmd">CrackMapExec</span></td><td>Network pentesting Swiss army knife</td></tr>
+  </table>
+</div>`,
+
+vocab: `
+<h2>Security Vocabulary & Concepts</h2>
+<div class="card">
+  <h3>Key Terms for Interviews</h3>
+  <table>
+    <tr><th>Term</th><th>Definition</th></tr>
+    <tr><td>TTP</td><td>Tactics, Techniques, and Procedures - the behavior patterns of threat actors</td></tr>
+    <tr><td>IOC</td><td>Indicator of Compromise - forensic artifact indicating intrusion (hash, IP, domain)</td></tr>
+    <tr><td>IOA</td><td>Indicator of Attack - behavioral pattern indicating active attack</td></tr>
+    <tr><td>UEBA</td><td>User and Entity Behavior Analytics - ML-based anomaly detection on user behavior</td></tr>
+    <tr><td>SOAR</td><td>Security Orchestration, Automation, and Response - automated incident response</td></tr>
+    <tr><td>Zero Trust</td><td>Never trust, always verify. No implicit trust based on network location</td></tr>
+    <tr><td>Defense in Depth</td><td>Multiple layers of security controls, no single point of failure</td></tr>
+    <tr><td>Blast Radius</td><td>Scope of damage from a security incident. Minimize through segmentation</td></tr>
+    <tr><td>Dwell Time</td><td>Time between compromise and detection. Key metric for security maturity</td></tr>
+    <tr><td>CSPM</td><td>Cloud Security Posture Management - continuous cloud misconfiguration detection</td></tr>
+    <tr><td>CNAPP</td><td>Cloud-Native Application Protection Platform - unified cloud security</td></tr>
+    <tr><td>XDR</td><td>Extended Detection and Response - cross-domain threat detection</td></tr>
+    <tr><td>SASE</td><td>Secure Access Service Edge - converged network + security cloud service</td></tr>
+    <tr><td>Assume Breach</td><td>Design defenses assuming the attacker is already inside</td></tr>
+    <tr><td>Living off the Land (LOTL)</td><td>Using legitimate system tools for malicious purposes</td></tr>
+    <tr><td>LOLBAS</td><td>Living Off the Land Binaries, Scripts and Libraries - catalog of abusable Windows binaries</td></tr>
+  </table>
+</div>`
+};
+
+function showSection(id) {
+  document.getElementById('content').innerHTML = sections[id] || '<p>Section not found</p>';
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+document.getElementById('content').innerHTML = sections.attck;
+</script>
+</body>
+</html>

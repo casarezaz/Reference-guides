@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Threat Modeling Workbench</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1117;--s1:#1a1d2e;--s2:#252940;--s3:#323755;--bd:#3d4266;--t1:#e8eaf6;--t2:#9fa4c4;--ac:#6366f1;--ac2:#818cf8;--red:#f87171;--org:#fb923c;--yel:#fbbf24;--grn:#4ade80;--cyn:#22d3ee;--mag:#c084fc}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+.app{display:flex;height:100vh}
+.nav{width:56px;background:var(--s1);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px;border-right:1px solid var(--bd)}
+.nav-btn{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);transition:all .15s;font-size:18px;border:none;background:none}
+.nav-btn:hover{background:var(--s2);color:var(--t1)}
+.nav-btn.active{background:var(--ac);color:#fff}
+.panel{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.toolbar{background:var(--s1);border-bottom:1px solid var(--bd);padding:10px 20px;display:flex;align-items:center;gap:12px}
+.toolbar h2{font-size:15px;font-weight:600}
+.toolbar-spacer{flex:1}
+.btn{padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer;border:1px solid var(--bd);background:var(--s2);color:var(--t1);transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.btn:hover{background:var(--s3)}
+.btn-p{background:var(--ac);border-color:var(--ac);color:#fff}.btn-p:hover{background:#4f46e5}
+.btn-d{border-color:var(--red);color:var(--red)}.btn-d:hover{background:rgba(248,113,113,.1)}
+.workspace{flex:1;overflow-y:auto;padding:20px}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:12px}
+.card h3{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.b-high{background:rgba(248,113,113,.15);color:var(--red)}
+.b-med{background:rgba(251,146,60,.15);color:var(--org)}
+.b-low{background:rgba(251,191,36,.15);color:var(--yel)}
+.b-info{background:rgba(99,102,241,.15);color:var(--ac2)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+input,textarea,select{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:8px 10px;color:var(--t1);font-size:12px;width:100%;outline:none;font-family:inherit}
+input:focus,textarea:focus,select:focus{border-color:var(--ac)}
+textarea{resize:vertical;min-height:60px}
+label{display:block;font-size:11px;color:var(--t2);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.form-group{margin-bottom:12px}
+.stride-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stride-card{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;cursor:pointer;transition:all .15s;position:relative}
+.stride-card:hover{border-color:var(--ac)}
+.stride-card.selected{border-color:var(--ac);background:rgba(99,102,241,.1)}
+.stride-card h4{font-size:13px;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.stride-card p{font-size:11px;color:var(--t2);line-height:1.4}
+.stride-icon{width:24px;height:24px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff}
+.threat-list{display:flex;flex-direction:column;gap:6px}
+.threat-item{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:10px 12px;display:flex;align-items:center;gap:10px;font-size:12px}
+.threat-item .sev{width:6px;height:30px;border-radius:3px;flex-shrink:0}
+.threat-item .info{flex:1}
+.threat-item .name{font-weight:600;margin-bottom:2px}
+.threat-item .desc{color:var(--t2);font-size:11px}
+.threat-item .actions{display:flex;gap:4px}
+.dread-score{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:12px}
+.dread-item{text-align:center;background:var(--s2);border-radius:6px;padding:8px 4px}
+.dread-item label{font-size:10px;margin-bottom:4px}
+.dread-item select{text-align:center;padding:4px}
+.total-score{text-align:center;padding:12px;background:var(--s2);border-radius:8px;margin-bottom:12px}
+.total-score .num{font-size:32px;font-weight:700}
+.attack-tree{padding:8px}
+.tree-node{margin-left:24px;position:relative}
+.tree-node::before{content:'';position:absolute;left:-16px;top:0;height:100%;border-left:1px dashed var(--bd)}
+.tree-node-head{display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--s2);border:1px solid var(--bd);border-radius:6px;margin:4px 0;font-size:12px;cursor:pointer}
+.tree-node-head:hover{border-color:var(--ac)}
+.tree-root{margin-left:0}.tree-root::before{display:none}
+.tree-node-head .expand{color:var(--t2);font-size:14px;width:16px}
+.kill-chain{display:flex;gap:2px;margin-bottom:16px;overflow-x:auto;padding-bottom:8px}
+.kc-step{flex:1;min-width:100px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;text-align:center;cursor:pointer;transition:all .15s;position:relative}
+.kc-step:hover{border-color:var(--ac)}
+.kc-step.active{border-color:var(--ac);background:rgba(99,102,241,.1)}
+.kc-step h5{font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.kc-step .num{font-size:18px;font-weight:700}
+.kc-arrow{display:flex;align-items:center;color:var(--t2);font-size:16px}
+.report-section{margin-bottom:20px}
+.report-section h3{font-size:14px;border-bottom:1px solid var(--bd);padding-bottom:8px;margin-bottom:12px}
+.tab-bar{display:flex;gap:2px;margin-bottom:16px}
+.tab-item{padding:8px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:6px 6px 0 0;cursor:pointer;font-size:12px;color:var(--t2)}
+.tab-item.active{background:var(--s1);border-bottom-color:var(--s1);color:var(--t1)}
+.empty-state{text-align:center;padding:40px;color:var(--t2)}
+.empty-state h3{color:var(--t1);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:8px 10px;text-align:left;border-bottom:1px solid var(--bd)}
+th{color:var(--t2);font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+.risk-matrix{display:grid;grid-template-columns:40px repeat(5,1fr);grid-template-rows:repeat(6,40px);gap:2px;margin:16px 0}
+.rm-cell{display:flex;align-items:center;justify-content:center;font-size:10px;border-radius:4px}
+.rm-header{color:var(--t2);font-weight:600}
+.rm-low{background:rgba(74,222,128,.15);color:var(--grn)}
+.rm-med{background:rgba(251,191,36,.15);color:var(--yel)}
+.rm-high{background:rgba(251,146,60,.15);color:var(--org)}
+.rm-crit{background:rgba(248,113,113,.15);color:var(--red)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+const STRIDE_CATEGORIES = [
+  {id:'S',name:'Spoofing',color:'#ef4444',desc:'Impersonating a user, component, or system to gain unauthorized access.',examples:['Token theft/replay','Session hijacking','ARP spoofing','Email spoofing','Certificate forgery'],mitigations:['Strong authentication (MFA)','Certificate pinning','Mutual TLS','Anti-replay mechanisms']},
+  {id:'T',name:'Tampering',color:'#f97316',desc:'Modifying data or code without authorization to compromise integrity.',examples:['SQL injection','Man-in-the-middle','Config file modification','Memory corruption','Supply chain tampering'],mitigations:['Input validation','Code signing','Integrity monitoring','Parameterized queries','Secure update mechanisms']},
+  {id:'R',name:'Repudiation',color:'#eab308',desc:'Performing actions without accountability or denying having performed them.',examples:['Log deletion','Transaction denial','Unsigned operations','Missing audit trail'],mitigations:['Secure logging','Digital signatures','Timestamps','Non-repudiation protocols','Immutable audit logs']},
+  {id:'I',name:'Info Disclosure',color:'#22c55e',desc:'Exposing information to unauthorized individuals or systems.',examples:['Data breach','Memory leak','Error message info','Side-channel attacks','Unencrypted storage'],mitigations:['Encryption at rest/transit','Access controls','Error handling','Data classification','DLP']},
+  {id:'D',name:'Denial of Service',color:'#3b82f6',desc:'Disrupting or degrading service availability for legitimate users.',examples:['DDoS','Resource exhaustion','Algorithmic complexity','Lock-out attacks','Crash bugs'],mitigations:['Rate limiting','Auto-scaling','Input validation','Circuit breakers','CDN/DDoS protection']},
+  {id:'E',name:'Elev. of Privilege',color:'#a855f7',desc:'Gaining capabilities beyond what was originally granted.',examples:['Buffer overflow','Privilege escalation','IDOR','Broken access control','Container escape'],mitigations:['Least privilege','Input validation','Sandboxing','RBAC','Secure defaults']}
+];
+
+const KILL_CHAIN_PHASES = [
+  {id:'recon',name:'Reconnaissance',desc:'Gathering target information'},
+  {id:'weapon',name:'Weaponization',desc:'Creating attack payload'},
+  {id:'deliver',name:'Delivery',desc:'Transmitting payload to target'},
+  {id:'exploit',name:'Exploitation',desc:'Triggering the vulnerability'},
+  {id:'install',name:'Installation',desc:'Establishing persistence'},
+  {id:'c2',name:'Command & Control',desc:'Establishing remote access'},
+  {id:'action',name:'Actions on Objectives',desc:'Achieving attack goals'}
+];
+
+let state = {
+  view: 'stride',
+  project: {name:'',desc:'',scope:'',assets:[]},
+  threats: [],
+  selectedStride: new Set(),
+  dreadScores: {D:5,R:5,E:5,A:5,D2:5},
+  newThreat: {name:'',desc:'',category:'S',severity:'high',mitigations:'',status:'open'},
+  killChainActive: null,
+  attackTree: {name:'Root Goal: Compromise System',children:[
+    {name:'Exploit Web Application',children:[{name:'SQL Injection',children:[]},{name:'XSS',children:[]},{name:'SSRF',children:[]}]},
+    {name:'Social Engineering',children:[{name:'Phishing',children:[]},{name:'Vishing',children:[]}]},
+    {name:'Supply Chain',children:[{name:'Dependency Confusion',children:[]},{name:'Compromised Update',children:[]}]}
+  ]},
+  editingAsset: false
+};
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="nav">
+      <div class="nav-btn ${state.view==='stride'?'active':''}" onclick="setView('stride')" title="STRIDE Analysis">S</div>
+      <div class="nav-btn ${state.view==='threats'?'active':''}" onclick="setView('threats')" title="Threat Registry">T</div>
+      <div class="nav-btn ${state.view==='dread'?'active':''}" onclick="setView('dread')" title="DREAD Scoring">D</div>
+      <div class="nav-btn ${state.view==='tree'?'active':''}" onclick="setView('tree')" title="Attack Trees">A</div>
+      <div class="nav-btn ${state.view==='killchain'?'active':''}" onclick="setView('killchain')" title="Kill Chain">K</div>
+      <div class="nav-btn ${state.view==='riskmatrix'?'active':''}" onclick="setView('riskmatrix')" title="Risk Matrix">R</div>
+      <div class="nav-btn ${state.view==='report'?'active':''}" onclick="setView('report')" title="Report">!</div>
+    </div>
+    <div class="panel">
+      <div class="toolbar">
+        <h2>${getViewTitle()}</h2>
+        <div class="toolbar-spacer"></div>
+        ${getToolbarActions()}
+      </div>
+      <div class="workspace">
+        ${renderView()}
+      </div>
+    </div>
+  `;
+}
+
+function getViewTitle() {
+  const titles = {stride:'STRIDE Threat Analysis',threats:'Threat Registry',dread:'DREAD Risk Scoring',tree:'Attack Tree Builder',killchain:'Cyber Kill Chain Mapping',riskmatrix:'Risk Assessment Matrix',report:'Threat Model Report'};
+  return titles[state.view] || '';
+}
+
+function getToolbarActions() {
+  if (state.view === 'threats') return '<button class="btn btn-p" onclick="addThreat()">+ Add Threat</button>';
+  if (state.view === 'report') return '<button class="btn btn-p" onclick="exportReport()">Export Report</button>';
+  return '';
+}
+
+function renderView() {
+  switch(state.view) {
+    case 'stride': return renderStride();
+    case 'threats': return renderThreats();
+    case 'dread': return renderDread();
+    case 'tree': return renderTree();
+    case 'killchain': return renderKillChain();
+    case 'riskmatrix': return renderRiskMatrix();
+    case 'report': return renderReport();
+  }
+}
+
+function renderStride() {
+  return `
+    <div class="card">
+      <h3>System Context</h3>
+      <div class="grid2">
+        <div class="form-group"><label>System Name</label><input value="${state.project.name}" onchange="state.project.name=this.value" placeholder="e.g., Azure Cloud Platform"></div>
+        <div class="form-group"><label>Scope</label><input value="${state.project.scope}" onchange="state.project.scope=this.value" placeholder="e.g., Authentication subsystem"></div>
+      </div>
+      <div class="form-group"><label>Description</label><textarea onchange="state.project.desc=this.value" placeholder="Describe the system architecture, data flows, trust boundaries...">${state.project.desc}</textarea></div>
+    </div>
+    <div class="card">
+      <h3>STRIDE Categories <span class="badge b-info">Click to select applicable threats</span></h3>
+      <div class="stride-grid">
+        ${STRIDE_CATEGORIES.map(s => `
+          <div class="stride-card ${state.selectedStride.has(s.id)?'selected':''}" onclick="toggleStride('${s.id}')">
+            <h4><div class="stride-icon" style="background:${s.color}">${s.id}</div>${s.name}</h4>
+            <p>${s.desc}</p>
+            <div style="margin-top:8px">
+              <div style="font-size:10px;color:var(--t2);margin-bottom:4px">EXAMPLES:</div>
+              ${s.examples.slice(0,3).map(e => `<div style="font-size:10px;color:var(--t2);padding:1px 0">- ${e}</div>`).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    ${state.selectedStride.size > 0 ? `
+      <div class="card">
+        <h3>Selected Threat Analysis</h3>
+        ${[...state.selectedStride].map(id => {
+          const s = STRIDE_CATEGORIES.find(c => c.id === id);
+          return `
+            <div style="margin-bottom:16px;padding:12px;background:var(--s2);border-radius:8px;border-left:3px solid ${s.color}">
+              <h4 style="font-size:13px;margin-bottom:8px">${s.name}</h4>
+              <div style="margin-bottom:8px">
+                <div style="font-size:11px;color:var(--t2);margin-bottom:4px">Attack Examples:</div>
+                ${s.examples.map(e => `<span class="badge" style="background:rgba(255,255,255,.05);color:var(--t1);margin:2px;font-weight:400">${e}</span>`).join('')}
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--t2);margin-bottom:4px">Recommended Mitigations:</div>
+                ${s.mitigations.map(m => `<div style="font-size:11px;padding:2px 0;color:var(--grn)">+ ${m}</div>`).join('')}
+              </div>
+              <button class="btn btn-p" style="margin-top:8px;font-size:11px" onclick="quickAddThreat('${s.id}')">Create Threat Entry</button>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    ` : ''}
+  `;
+}
+
+function renderThreats() {
+  if (state.threats.length === 0) return `<div class="empty-state"><h3>No threats registered yet</h3><p>Use STRIDE analysis to identify threats, or add them manually.</p></div>`;
+  const grouped = {};
+  state.threats.forEach(t => { if (!grouped[t.category]) grouped[t.category]=[]; grouped[t.category].push(t); });
+  return `
+    <div style="display:flex;gap:12px;margin-bottom:16px">
+      <div class="card" style="flex:1;text-align:center;margin:0"><div style="font-size:24px;font-weight:700">${state.threats.length}</div><div style="font-size:11px;color:var(--t2)">Total Threats</div></div>
+      <div class="card" style="flex:1;text-align:center;margin:0"><div style="font-size:24px;font-weight:700;color:var(--red)">${state.threats.filter(t=>t.severity==='high').length}</div><div style="font-size:11px;color:var(--t2)">High Severity</div></div>
+      <div class="card" style="flex:1;text-align:center;margin:0"><div style="font-size:24px;font-weight:700;color:var(--grn)">${state.threats.filter(t=>t.status==='mitigated').length}</div><div style="font-size:11px;color:var(--t2)">Mitigated</div></div>
+      <div class="card" style="flex:1;text-align:center;margin:0"><div style="font-size:24px;font-weight:700;color:var(--org)">${state.threats.filter(t=>t.status==='open').length}</div><div style="font-size:11px;color:var(--t2)">Open</div></div>
+    </div>
+    ${Object.entries(grouped).map(([cat, threats]) => {
+      const s = STRIDE_CATEGORIES.find(c => c.id === cat);
+      return `
+        <div class="card">
+          <h3><div class="stride-icon" style="background:${s?.color||'var(--ac)'};width:20px;height:20px;font-size:10px">${cat}</div>${s?.name||cat} (${threats.length})</h3>
+          <div class="threat-list">
+            ${threats.map((t,i) => `
+              <div class="threat-item">
+                <div class="sev" style="background:${t.severity==='high'?'var(--red)':t.severity==='med'?'var(--org)':'var(--yel)'}"></div>
+                <div class="info">
+                  <div class="name">${t.name}</div>
+                  <div class="desc">${t.desc}</div>
+                  ${t.mitigations ? `<div style="color:var(--grn);font-size:10px;margin-top:2px">Mitigation: ${t.mitigations}</div>` : ''}
+                </div>
+                <span class="badge ${t.status==='open'?'b-high':t.status==='mitigated'?'b-low':'b-med'}">${t.status}</span>
+                <div class="actions">
+                  <button class="btn" style="font-size:10px;padding:3px 8px" onclick="cycleThreatStatus(${state.threats.indexOf(t)})">Toggle</button>
+                  <button class="btn btn-d" style="font-size:10px;padding:3px 8px" onclick="removeThreat(${state.threats.indexOf(t)})">X</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }).join('')}
+  `;
+}
+
+function renderDread() {
+  const labels = {D:'Damage',R:'Reproducibility',E:'Exploitability',A:'Affected Users',D2:'Discoverability'};
+  const total = Object.values(state.dreadScores).reduce((a,b)=>a+b,0);
+  const avg = (total/5).toFixed(1);
+  const level = avg >= 8 ? 'Critical' : avg >= 6 ? 'High' : avg >= 4 ? 'Medium' : 'Low';
+  const levelColor = avg >= 8 ? 'var(--red)' : avg >= 6 ? 'var(--org)' : avg >= 4 ? 'var(--yel)' : 'var(--grn)';
+
+  return `
+    <div class="card">
+      <h3>DREAD Risk Assessment Model</h3>
+      <p style="font-size:12px;color:var(--t2);margin-bottom:16px">Rate each factor from 1 (low) to 10 (high) to calculate overall risk.</p>
+      <div class="dread-score">
+        ${Object.entries(labels).map(([k,v]) => `
+          <div class="dread-item">
+            <label>${v}</label>
+            <select value="${state.dreadScores[k]}" onchange="state.dreadScores['${k}']=parseInt(this.value);render()">
+              ${[1,2,3,4,5,6,7,8,9,10].map(n => `<option ${state.dreadScores[k]===n?'selected':''}>${n}</option>`).join('')}
+            </select>
+          </div>
+        `).join('')}
+      </div>
+      <div class="total-score">
+        <div style="font-size:11px;color:var(--t2)">Overall Risk Score</div>
+        <div class="num" style="color:${levelColor}">${avg}</div>
+        <div style="font-size:13px;color:${levelColor}">${level} Risk</div>
+      </div>
+      <div style="font-size:12px;color:var(--t2)">
+        <div style="margin-bottom:8px"><strong style="color:var(--t1)">Damage (${state.dreadScores.D}/10):</strong> How severe would a successful attack be?</div>
+        <div style="margin-bottom:8px"><strong style="color:var(--t1)">Reproducibility (${state.dreadScores.R}/10):</strong> How easy is it to reproduce the attack?</div>
+        <div style="margin-bottom:8px"><strong style="color:var(--t1)">Exploitability (${state.dreadScores.E}/10):</strong> How much skill/resources are needed?</div>
+        <div style="margin-bottom:8px"><strong style="color:var(--t1)">Affected Users (${state.dreadScores.A}/10):</strong> How many users would be impacted?</div>
+        <div><strong style="color:var(--t1)">Discoverability (${state.dreadScores.D2}/10):</strong> How easy is it to discover the vulnerability?</div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>DREAD Scoring Guide</h3>
+      <table>
+        <tr><th>Score</th><th>Risk Level</th><th>Action</th></tr>
+        <tr><td><span class="badge b-high">8-10</span></td><td>Critical</td><td>Immediate remediation required. Stop-ship criteria.</td></tr>
+        <tr><td><span class="badge b-med">6-7.9</span></td><td>High</td><td>Remediate before release. Schedule fix sprint.</td></tr>
+        <tr><td><span class="badge b-low">4-5.9</span></td><td>Medium</td><td>Plan remediation. Include in next release cycle.</td></tr>
+        <tr><td><span class="badge b-info">1-3.9</span></td><td>Low</td><td>Accept risk or backlog. Monitor for changes.</td></tr>
+      </table>
+    </div>
+  `;
+}
+
+function renderTree() {
+  return `
+    <div class="card">
+      <h3>Attack Tree Visualization</h3>
+      <p style="font-size:12px;color:var(--t2);margin-bottom:16px">Model hierarchical attack paths. Click nodes to expand/collapse. Double-click to edit.</p>
+      <div class="attack-tree">
+        ${renderTreeNode(state.attackTree, 'root', true)}
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px">
+        <button class="btn btn-p" onclick="addTreeNode('root')">+ Add Branch</button>
+        <button class="btn" onclick="resetTree()">Reset to Default</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Attack Tree Patterns</h3>
+      <div class="grid3">
+        <div style="background:var(--s2);padding:12px;border-radius:8px">
+          <h4 style="font-size:12px;margin-bottom:4px;color:var(--red)">OR Node</h4>
+          <p style="font-size:11px;color:var(--t2)">Any child path achieves the goal. Attacker needs to succeed at just one branch.</p>
+        </div>
+        <div style="background:var(--s2);padding:12px;border-radius:8px">
+          <h4 style="font-size:12px;margin-bottom:4px;color:var(--cyn)">AND Node</h4>
+          <p style="font-size:11px;color:var(--t2)">All child paths must succeed. Attacker must complete every branch.</p>
+        </div>
+        <div style="background:var(--s2);padding:12px;border-radius:8px">
+          <h4 style="font-size:12px;margin-bottom:4px;color:var(--grn)">Leaf Node</h4>
+          <p style="font-size:11px;color:var(--t2)">An atomic attack step. Assign cost, difficulty, and probability.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderTreeNode(node, path, isRoot) {
+  const hasChildren = node.children && node.children.length > 0;
+  return `
+    <div class="tree-node ${isRoot?'tree-root':''}">
+      <div class="tree-node-head" onclick="toggleTreeNode('${path}')">
+        <span class="expand">${hasChildren ? (node.collapsed ? '+' : '-') : ' '}</span>
+        <span style="color:${isRoot?'var(--ac2)':hasChildren?'var(--cyn)':'var(--t1)'}">${node.name}</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--t2)">${hasChildren?`(${node.children.length})`:''}</span>
+        <button class="btn" style="font-size:10px;padding:2px 6px" onclick="event.stopPropagation();addTreeNode('${path}')">+</button>
+      </div>
+      ${hasChildren && !node.collapsed ? node.children.map((c,i) => renderTreeNode(c, path+'.'+i, false)).join('') : ''}
+    </div>
+  `;
+}
+
+function renderKillChain() {
+  return `
+    <div class="card">
+      <h3>Lockheed Martin Cyber Kill Chain</h3>
+      <div class="kill-chain">
+        ${KILL_CHAIN_PHASES.map((p,i) => `
+          ${i>0?'<div class="kc-arrow">\u2192</div>':''}
+          <div class="kc-step ${state.killChainActive===p.id?'active':''}" onclick="state.killChainActive=p.id==='${p.id}'?state.killChainActive==='${p.id}'?null:'${p.id}':'${p.id}';render()">
+            <h5>${p.name}</h5>
+            <div style="font-size:10px;color:var(--t2)">${p.desc}</div>
+            <div class="num">${i+1}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <h3>Defensive Mapping</h3>
+      <table>
+        <tr><th>Phase</th><th>Detect</th><th>Deny</th><th>Disrupt</th><th>Degrade</th><th>Deceive</th></tr>
+        ${KILL_CHAIN_PHASES.map(p => `
+          <tr>
+            <td style="font-weight:600">${p.name}</td>
+            <td style="font-size:11px">${getDefense(p.id,'detect')}</td>
+            <td style="font-size:11px">${getDefense(p.id,'deny')}</td>
+            <td style="font-size:11px">${getDefense(p.id,'disrupt')}</td>
+            <td style="font-size:11px">${getDefense(p.id,'degrade')}</td>
+            <td style="font-size:11px">${getDefense(p.id,'deceive')}</td>
+          </tr>
+        `).join('')}
+      </table>
+    </div>
+    <div class="card">
+      <h3>Kill Chain vs Diamond Model vs ATT&CK</h3>
+      <div class="grid3">
+        <div style="background:var(--s2);padding:12px;border-radius:8px">
+          <h4 style="font-size:12px;color:var(--ac2);margin-bottom:4px">Kill Chain</h4>
+          <p style="font-size:11px;color:var(--t2)">Linear attack progression model. Best for understanding attack flow and identifying defensive gaps at each phase.</p>
+        </div>
+        <div style="background:var(--s2);padding:12px;border-radius:8px">
+          <h4 style="font-size:12px;color:var(--cyn);margin-bottom:4px">Diamond Model</h4>
+          <p style="font-size:11px;color:var(--t2)">Adversary-capability-infrastructure-victim relationship model. Best for threat intelligence and attribution analysis.</p>
+        </div>
+        <div style="background:var(--s2);padding:12px;border-radius:8px">
+          <h4 style="font-size:12px;color:var(--grn);margin-bottom:4px">MITRE ATT&CK</h4>
+          <p style="font-size:11px;color:var(--t2)">Comprehensive TTP knowledge base. Best for detection engineering, threat hunting, and red team planning.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function getDefense(phase, type) {
+  const defenses = {
+    recon:{detect:'Web analytics, OSINT monitoring',deny:'Info sharing policies',disrupt:'',degrade:'',deceive:'Honeypots, fake data'},
+    weapon:{detect:'YARA rules, malware analysis',deny:'',disrupt:'',degrade:'',deceive:''},
+    deliver:{detect:'Email filtering, IDS',deny:'Proxy filtering, email auth',disrupt:'AV inline, sandboxing',degrade:'Queuing, throttling',deceive:''},
+    exploit:{detect:'HIDS, EDR alerts',deny:'Patching, DEP, ASLR',disrupt:'EDR containment',degrade:'',deceive:'Exploit canaries'},
+    install:{detect:'HIDS, file integrity',deny:'Allowlisting, chroot',disrupt:'EDR isolation',degrade:'',deceive:'Fake filesystem'},
+    c2:{detect:'NIDS, DNS monitoring',deny:'Firewall egress rules',disrupt:'NIPS, DNS sinkhole',degrade:'Traffic shaping',deceive:'DNS honeypot'},
+    action:{detect:'DLP, UEBA, audit logs',deny:'Access controls, encryption',disrupt:'Containment, network isolation',degrade:'QoS, data degradation',deceive:'Honeytokens, decoy data'}
+  };
+  return defenses[phase]?.[type] || '-';
+}
+
+function renderRiskMatrix() {
+  const levels = ['Rare','Unlikely','Possible','Likely','Almost Certain'];
+  const impacts = ['Negligible','Minor','Moderate','Major','Catastrophic'];
+  const colors = [
+    ['rm-low','rm-low','rm-low','rm-med','rm-med'],
+    ['rm-low','rm-low','rm-med','rm-med','rm-high'],
+    ['rm-low','rm-med','rm-med','rm-high','rm-high'],
+    ['rm-med','rm-med','rm-high','rm-high','rm-crit'],
+    ['rm-med','rm-high','rm-high','rm-crit','rm-crit']
+  ];
+  return `
+    <div class="card">
+      <h3>Risk Assessment Matrix</h3>
+      <p style="font-size:12px;color:var(--t2);margin-bottom:16px">Map threats to likelihood vs. impact to prioritize remediation efforts.</p>
+      <div style="display:flex;align-items:center;gap:20px">
+        <div style="writing-mode:vertical-rl;transform:rotate(180deg);font-size:11px;color:var(--t2);text-align:center">IMPACT \u2192</div>
+        <div style="flex:1">
+          <div class="risk-matrix">
+            <div class="rm-cell"></div>
+            ${levels.map(l => `<div class="rm-cell rm-header">${l}</div>`).join('')}
+            ${impacts.reverse().map((imp,i) => `
+              <div class="rm-cell rm-header">${imp}</div>
+              ${levels.map((l,j) => `<div class="rm-cell ${colors[4-i][j]}">${4-i+j >= 7 ? 'C' : 4-i+j >= 5 ? 'H' : 4-i+j >= 3 ? 'M' : 'L'}</div>`).join('')}
+            `).join('')}
+          </div>
+          <div style="text-align:center;font-size:11px;color:var(--t2)">LIKELIHOOD \u2192</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Risk Treatment Options</h3>
+      <div class="grid2">
+        <div style="background:var(--s2);padding:12px;border-radius:8px;border-left:3px solid var(--grn)">
+          <h4 style="font-size:12px;margin-bottom:4px">Accept</h4>
+          <p style="font-size:11px;color:var(--t2)">Risk is within tolerance. Document acceptance and monitor for changes. Appropriate for low-likelihood, low-impact threats.</p>
+        </div>
+        <div style="background:var(--s2);padding:12px;border-radius:8px;border-left:3px solid var(--cyn)">
+          <h4 style="font-size:12px;margin-bottom:4px">Mitigate</h4>
+          <p style="font-size:11px;color:var(--t2)">Implement controls to reduce likelihood or impact. Most common approach. Apply defense-in-depth principles.</p>
+        </div>
+        <div style="background:var(--s2);padding:12px;border-radius:8px;border-left:3px solid var(--org)">
+          <h4 style="font-size:12px;margin-bottom:4px">Transfer</h4>
+          <p style="font-size:11px;color:var(--t2)">Shift risk to a third party via insurance, outsourcing, or contractual obligations. Does not eliminate the threat.</p>
+        </div>
+        <div style="background:var(--s2);padding:12px;border-radius:8px;border-left:3px solid var(--red)">
+          <h4 style="font-size:12px;margin-bottom:4px">Avoid</h4>
+          <p style="font-size:11px;color:var(--t2)">Eliminate the activity or technology that creates the risk. Highest certainty but may limit business capability.</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderReport() {
+  return `
+    <div class="report-section">
+      <h3>Threat Model Summary</h3>
+      <div class="card">
+        <table>
+          <tr><td style="color:var(--t2);width:150px">System</td><td>${state.project.name || 'Not specified'}</td></tr>
+          <tr><td style="color:var(--t2)">Scope</td><td>${state.project.scope || 'Not specified'}</td></tr>
+          <tr><td style="color:var(--t2)">Total Threats</td><td>${state.threats.length}</td></tr>
+          <tr><td style="color:var(--t2)">High Severity</td><td style="color:var(--red)">${state.threats.filter(t=>t.severity==='high').length}</td></tr>
+          <tr><td style="color:var(--t2)">Open Threats</td><td style="color:var(--org)">${state.threats.filter(t=>t.status==='open').length}</td></tr>
+          <tr><td style="color:var(--t2)">Mitigated</td><td style="color:var(--grn)">${state.threats.filter(t=>t.status==='mitigated').length}</td></tr>
+          <tr><td style="color:var(--t2)">STRIDE Coverage</td><td>${state.selectedStride.size}/6 categories analyzed</td></tr>
+        </table>
+      </div>
+    </div>
+    <div class="report-section">
+      <h3>Threat Inventory</h3>
+      ${state.threats.length ? `
+        <div class="card">
+          <table>
+            <tr><th>ID</th><th>Category</th><th>Threat</th><th>Severity</th><th>Status</th><th>Mitigations</th></tr>
+            ${state.threats.map((t,i) => `
+              <tr>
+                <td>T-${String(i+1).padStart(3,'0')}</td>
+                <td>${STRIDE_CATEGORIES.find(s=>s.id===t.category)?.name||t.category}</td>
+                <td>${t.name}</td>
+                <td><span class="badge ${t.severity==='high'?'b-high':t.severity==='med'?'b-med':'b-low'}">${t.severity}</span></td>
+                <td><span class="badge ${t.status==='open'?'b-high':'b-low'}">${t.status}</span></td>
+                <td style="font-size:11px">${t.mitigations||'-'}</td>
+              </tr>
+            `).join('')}
+          </table>
+        </div>
+      ` : '<div class="card"><p style="color:var(--t2)">No threats registered. Use STRIDE analysis to identify threats.</p></div>'}
+    </div>
+    <div class="report-section">
+      <h3>Recommendations</h3>
+      <div class="card">
+        <div style="font-size:12px;line-height:1.8;color:var(--t2)">
+          ${state.threats.filter(t=>t.status==='open'&&t.severity==='high').length > 0 ?
+            '<div style="color:var(--red);margin-bottom:8px">CRITICAL: ' + state.threats.filter(t=>t.status==='open'&&t.severity==='high').length + ' high-severity threats remain open and require immediate attention.</div>' : ''}
+          <div>1. Address all high-severity open threats before deployment</div>
+          <div>2. Implement defense-in-depth for all identified STRIDE categories</div>
+          <div>3. Establish continuous monitoring for all threat vectors</div>
+          <div>4. Schedule periodic threat model reviews (quarterly recommended)</div>
+          <div>5. Validate mitigations with penetration testing</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function setView(v) { state.view = v; render(); }
+function toggleStride(id) { state.selectedStride.has(id) ? state.selectedStride.delete(id) : state.selectedStride.add(id); render(); }
+
+function quickAddThreat(cat) {
+  const s = STRIDE_CATEGORIES.find(c => c.id === cat);
+  state.threats.push({name:s.name+' Threat',desc:s.examples[0],category:cat,severity:'high',mitigations:s.mitigations[0],status:'open'});
+  render();
+}
+
+function addThreat() {
+  const name = prompt('Threat name:');
+  if (!name) return;
+  const desc = prompt('Description:') || '';
+  const cat = prompt('STRIDE category (S/T/R/I/D/E):','S') || 'S';
+  state.threats.push({name,desc,category:cat.toUpperCase(),severity:'high',mitigations:'',status:'open'});
+  render();
+}
+
+function removeThreat(i) { state.threats.splice(i,1); render(); }
+function cycleThreatStatus(i) {
+  const statuses = ['open','in-progress','mitigated'];
+  const cur = statuses.indexOf(state.threats[i].status);
+  state.threats[i].status = statuses[(cur+1)%statuses.length];
+  render();
+}
+
+function toggleTreeNode(path) {
+  const node = getTreeNode(path);
+  if (node.children && node.children.length) node.collapsed = !node.collapsed;
+  render();
+}
+
+function addTreeNode(path) {
+  const name = prompt('Node name:');
+  if (!name) return;
+  const node = getTreeNode(path);
+  if (!node.children) node.children = [];
+  node.children.push({name, children:[]});
+  render();
+}
+
+function getTreeNode(path) {
+  if (path === 'root') return state.attackTree;
+  const parts = path.split('.').slice(1);
+  let node = state.attackTree;
+  parts.forEach(p => node = node.children[parseInt(p)]);
+  return node;
+}
+
+function resetTree() {
+  state.attackTree = {name:'Root Goal: Compromise System',children:[
+    {name:'Exploit Web Application',children:[{name:'SQL Injection',children:[]},{name:'XSS',children:[]},{name:'SSRF',children:[]}]},
+    {name:'Social Engineering',children:[{name:'Phishing',children:[]},{name:'Vishing',children:[]}]},
+    {name:'Supply Chain',children:[{name:'Dependency Confusion',children:[]},{name:'Compromised Update',children:[]}]}
+  ]};
+  render();
+}
+
+function exportReport() { alert('Report data logged to console. In production, this would generate a PDF/DOCX.'); console.log(JSON.stringify({project:state.project,threats:state.threats,stride:[...state.selectedStride],dread:state.dreadScores},null,2)); }
+
+render();
+</script>
+</body>
+</html>

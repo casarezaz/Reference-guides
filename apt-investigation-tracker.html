@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>APT Investigation Tracker</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1a2332;--surface3:#243044;--accent:#ef4444;--accent2:#f97316;--accent3:#eab308;--green:#22c55e;--blue:#3b82f6;--purple:#a855f7;--cyan:#06b6d4;--pink:#ec4899;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:#1e293b}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;display:flex;height:100vh;overflow:hidden}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Sidebar */
+.sidebar{width:250px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0}
+.sidebar-header{padding:16px;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-size:15px;color:var(--accent);display:flex;align-items:center;gap:8px}
+.sidebar-header h1 span{font-size:18px}
+.sidebar-header p{font-size:11px;color:var(--text3);margin-top:2px}
+
+.nav{flex:1;overflow-y:auto;padding:6px}
+.nav-section{font-size:9px;text-transform:uppercase;color:var(--text3);padding:10px 10px 3px;letter-spacing:1px;font-weight:600}
+.nav-item{padding:7px 10px;border-radius:6px;cursor:pointer;font-size:12.5px;color:var(--text2);transition:all .15s;display:flex;align-items:center;gap:7px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff}
+.nav-item .icon{width:16px;text-align:center;font-size:13px}
+.nav-item .count{margin-left:auto;font-size:10px;background:var(--surface3);padding:1px 6px;border-radius:8px;color:var(--text3)}
+
+.sidebar-footer{padding:10px;border-top:1px solid var(--border);display:flex;gap:6px}
+.sidebar-footer button{flex:1;padding:6px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);cursor:pointer;font-size:11px;transition:all .15s}
+.sidebar-footer button:hover{background:var(--surface3);color:var(--text)}
+
+/* Main */
+.main{flex:1;overflow-y:auto;padding:24px 32px}
+.view{display:none;max-width:1200px}
+.view.active{display:block}
+.view h2{font-size:22px;margin-bottom:4px}
+.view .subtitle{color:var(--text3);font-size:12px;margin-bottom:20px}
+h3{font-size:16px;color:var(--accent2);margin:20px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+h4{font-size:13px;color:var(--cyan);margin:14px 0 6px}
+
+/* Forms & Inputs */
+.form-row{display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.form-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px}
+.form-group label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+input[type="text"],input[type="url"],input[type="date"],input[type="number"],textarea,select{
+  padding:7px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12.5px;font-family:inherit;outline:none;width:100%}
+input:focus,textarea:focus,select:focus{border-color:var(--blue)}
+textarea{resize:vertical;min-height:60px}
+select{cursor:pointer}
+
+.btn{padding:7px 16px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+.btn-primary{background:var(--blue);color:#fff}.btn-primary:hover{filter:brightness(1.15)}
+.btn-danger{background:var(--accent);color:#fff}.btn-danger:hover{filter:brightness(1.15)}
+.btn-success{background:var(--green);color:#fff}.btn-success:hover{filter:brightness(1.15)}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text2)}.btn-ghost:hover{background:var(--surface2)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-group{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap}
+
+/* Cards & Tables */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.card-title{font-size:14px;font-weight:600}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{background:var(--surface2);padding:8px 10px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text2);border:1px solid var(--border)}
+td{padding:7px 10px;border:1px solid var(--border);color:var(--text2);vertical-align:top}
+tr:hover td{background:rgba(255,255,255,.02)}
+.clickable-row{cursor:pointer}
+.clickable-row:hover td{background:var(--surface2)!important}
+
+.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:500;display:inline-block;white-space:nowrap}
+.badge-red{background:rgba(239,68,68,.15);color:var(--accent)}
+.badge-orange{background:rgba(249,115,22,.15);color:var(--accent2)}
+.badge-yellow{background:rgba(234,179,8,.15);color:var(--accent3)}
+.badge-green{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.badge-purple{background:rgba(168,85,247,.15);color:var(--purple)}
+.badge-cyan{background:rgba(6,182,212,.15);color:var(--cyan)}
+.badge-pink{background:rgba(236,72,153,.15);color:var(--pink)}
+
+.tag{font-size:10px;padding:1px 6px;border-radius:3px;background:var(--surface2);color:var(--text3);display:inline-block;margin:1px 2px}
+.removable{cursor:pointer}.removable:hover{text-decoration:line-through;opacity:.6}
+
+.empty-state{text-align:center;padding:40px 20px;color:var(--text3)}
+.empty-state .icon{font-size:36px;margin-bottom:10px}
+.empty-state p{font-size:13px;margin-bottom:12px}
+
+/* Grid layouts */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:1000px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+
+/* Diamond Model Visual */
+.diamond-visual{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto auto;gap:6px;max-width:520px;margin:16px auto;text-align:center}
+.dv-node{background:var(--surface);border:2px solid var(--border);padding:12px 8px;border-radius:8px;cursor:pointer;transition:all .2s}
+.dv-node:hover{border-color:var(--blue)}
+.dv-node.has-data{border-color:var(--green);background:rgba(34,197,94,.05)}
+.dv-top{grid-column:2;grid-row:1}
+.dv-left{grid-column:1;grid-row:2}
+.dv-center{grid-column:2;grid-row:2;background:var(--bg);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3)}
+.dv-right{grid-column:3;grid-row:2}
+.dv-bottom{grid-column:2;grid-row:3}
+.dv-label{font-size:10px;text-transform:uppercase;color:var(--text3);letter-spacing:.5px;margin-bottom:3px}
+.dv-value{font-size:12px;color:var(--text);min-height:18px}
+.dv-count{font-size:10px;color:var(--text3);margin-top:3px}
+
+/* Confidence meter */
+.confidence-bar{display:flex;gap:2px;margin:6px 0}
+.conf-segment{height:20px;flex:1;border-radius:3px;background:var(--surface2);cursor:pointer;transition:all .15s}
+.conf-segment:hover{filter:brightness(1.3)}
+.conf-segment.active.c-low{background:var(--accent)}
+.conf-segment.active.c-med{background:var(--accent2)}
+.conf-segment.active.c-high{background:var(--green)}
+.conf-label{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
+
+/* Timeline */
+.tl{position:relative;padding-left:24px;margin:12px 0}
+.tl::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--border)}
+.tl-item{position:relative;margin-bottom:14px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:6px;font-size:12px}
+.tl-item::before{content:'';position:absolute;left:-20px;top:14px;width:8px;height:8px;border-radius:50%;border:2px solid var(--bg)}
+.tl-item.type-ioc::before{background:var(--accent)}
+.tl-item.type-ttp::before{background:var(--blue)}
+.tl-item.type-infra::before{background:var(--purple)}
+.tl-item.type-note::before{background:var(--text3)}
+.tl-item.type-malware::before{background:var(--accent2)}
+.tl-date{font-size:10px;color:var(--text3)}
+.tl-title{font-weight:600;margin:2px 0}
+.tl-desc{color:var(--text2);font-size:11.5px}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;width:90%;max-width:600px;max-height:85vh;overflow-y:auto}
+.modal h3{margin-top:0;border:0;padding:0;margin-bottom:16px}
+.modal-close{float:right;background:none;border:none;color:var(--text3);cursor:pointer;font-size:18px;padding:4px}
+
+/* Stats */
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
+.stat-value{font-size:28px;font-weight:700;color:var(--text)}
+.stat-label{font-size:11px;color:var(--text3);margin-top:2px}
+
+/* Link graph placeholder */
+.graph-area{background:var(--bg);border:1px solid var(--border);border-radius:8px;min-height:300px;position:relative;overflow:hidden}
+.graph-node{position:absolute;padding:6px 10px;border-radius:6px;font-size:11px;cursor:move;user-select:none;border:2px solid;z-index:2}
+.graph-line{position:absolute;z-index:1;pointer-events:none}
+
+pre{background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:10px;font-size:12px;line-height:1.5;overflow-x:auto;font-family:'Cascadia Code','Fira Code',monospace}
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="sidebar-header">
+    <h1><span>🎯</span> APT Tracker</h1>
+    <p>Investigation & Attribution</p>
+  </div>
+  <nav class="nav" id="nav">
+    <div class="nav-section">Workspace</div>
+    <div class="nav-item active" data-view="dashboard"><span class="icon">📊</span>Dashboard<span class="count" id="cnt-cases">0</span></div>
+    <div class="nav-item" data-view="cases"><span class="icon">📁</span>Investigations<span class="count" id="cnt-inv">0</span></div>
+    <div class="nav-section">Evidence</div>
+    <div class="nav-item" data-view="iocs"><span class="icon">🔍</span>IOC Repository<span class="count" id="cnt-ioc">0</span></div>
+    <div class="nav-item" data-view="ttps"><span class="icon">⚔️</span>TTP Observations<span class="count" id="cnt-ttp">0</span></div>
+    <div class="nav-item" data-view="infrastructure"><span class="icon">🌐</span>Infrastructure<span class="count" id="cnt-infra">0</span></div>
+    <div class="nav-item" data-view="malware"><span class="icon">🦠</span>Malware Samples<span class="count" id="cnt-mal">0</span></div>
+    <div class="nav-section">Analysis</div>
+    <div class="nav-item" data-view="diamond"><span class="icon">💎</span>Diamond Model</div>
+    <div class="nav-item" data-view="timeline"><span class="icon">📅</span>Event Timeline</div>
+    <div class="nav-item" data-view="link-graph"><span class="icon">🕸️</span>Link Graph</div>
+    <div class="nav-item" data-view="attribution"><span class="icon">🏷️</span>Attribution Matrix</div>
+    <div class="nav-section">Output</div>
+    <div class="nav-item" data-view="report"><span class="icon">📄</span>Generate Report</div>
+  </nav>
+  <div class="sidebar-footer">
+    <button onclick="exportData()">💾 Export</button>
+    <button onclick="document.getElementById('import-file').click()">📂 Import</button>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="view active" id="v-dashboard">
+  <h2>Investigation Dashboard</h2>
+  <p class="subtitle">Overview of all active investigations and evidence</p>
+
+  <div class="grid-4" id="dash-stats">
+    <div class="stat-card"><div class="stat-value" id="s-cases">0</div><div class="stat-label">Investigations</div></div>
+    <div class="stat-card"><div class="stat-value" id="s-iocs">0</div><div class="stat-label">IOCs Collected</div></div>
+    <div class="stat-card"><div class="stat-value" id="s-ttps">0</div><div class="stat-label">TTPs Observed</div></div>
+    <div class="stat-card"><div class="stat-value" id="s-infra">0</div><div class="stat-label">Infrastructure</div></div>
+  </div>
+
+  <h3>Active Investigations</h3>
+  <div id="dash-cases"></div>
+
+  <h3>Recent Evidence</h3>
+  <div id="dash-recent"></div>
+</div>
+
+<!-- INVESTIGATIONS -->
+<div class="view" id="v-cases">
+  <h2>Investigations</h2>
+  <p class="subtitle">Create and manage investigation cases</p>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="openModal('case-modal')">+ New Investigation</button>
+  </div>
+  <div id="cases-list"></div>
+</div>
+
+<!-- IOC REPOSITORY -->
+<div class="view" id="v-iocs">
+  <h2>IOC Repository</h2>
+  <p class="subtitle">Collect, categorize, and link indicators of compromise</p>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="openModal('ioc-modal')">+ Add IOC</button>
+    <button class="btn btn-ghost" onclick="openModal('ioc-bulk-modal')">📋 Bulk Import</button>
+  </div>
+  <div class="form-row" style="margin-bottom:12px">
+    <div class="form-group" style="max-width:300px">
+      <input type="text" id="ioc-filter" placeholder="Filter IOCs..." oninput="renderIOCs()">
+    </div>
+    <div class="form-group" style="max-width:150px">
+      <select id="ioc-type-filter" onchange="renderIOCs()">
+        <option value="">All Types</option>
+        <option value="hash-md5">MD5</option>
+        <option value="hash-sha256">SHA256</option>
+        <option value="hash-sha1">SHA1</option>
+        <option value="ip">IP Address</option>
+        <option value="domain">Domain</option>
+        <option value="url">URL</option>
+        <option value="email">Email</option>
+        <option value="filename">Filename</option>
+        <option value="mutex">Mutex</option>
+        <option value="registry">Registry Key</option>
+        <option value="useragent">User Agent</option>
+        <option value="yara">YARA Rule</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+  </div>
+  <div id="ioc-table-container"></div>
+</div>
+
+<!-- TTP OBSERVATIONS -->
+<div class="view" id="v-ttps">
+  <h2>TTP Observations</h2>
+  <p class="subtitle">Map observed tactics, techniques, and procedures to MITRE ATT&CK</p>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="openModal('ttp-modal')">+ Add TTP</button>
+  </div>
+  <div id="ttp-list"></div>
+
+  <h3>ATT&CK Coverage Heatmap</h3>
+  <div id="attack-heatmap" class="card" style="overflow-x:auto"></div>
+</div>
+
+<!-- INFRASTRUCTURE -->
+<div class="view" id="v-infrastructure">
+  <h2>Infrastructure Tracking</h2>
+  <p class="subtitle">Map adversary command & control and operational infrastructure</p>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="openModal('infra-modal')">+ Add Infrastructure</button>
+  </div>
+  <div id="infra-list"></div>
+</div>
+
+<!-- MALWARE -->
+<div class="view" id="v-malware">
+  <h2>Malware Samples</h2>
+  <p class="subtitle">Track malware samples, families, and analysis findings</p>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="openModal('malware-modal')">+ Add Sample</button>
+  </div>
+  <div id="malware-list"></div>
+</div>
+
+<!-- DIAMOND MODEL -->
+<div class="view" id="v-diamond">
+  <h2>Diamond Model Builder</h2>
+  <p class="subtitle">Map evidence to Diamond Model vertices for structured analysis</p>
+
+  <div class="form-row" style="margin-bottom:12px">
+    <div class="form-group" style="max-width:300px">
+      <label>Select Investigation</label>
+      <select id="diamond-case" onchange="renderDiamond()">
+        <option value="">-- select --</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="diamond-visual" id="diamond-viz">
+    <div class="dv-node dv-top" onclick="openDiamondEdit('adversary')">
+      <div class="dv-label">Adversary</div>
+      <div class="dv-value" id="dv-adversary">Click to define</div>
+      <div class="dv-count" id="dvc-adversary"></div>
+    </div>
+    <div class="dv-node dv-left" onclick="openDiamondEdit('capability')">
+      <div class="dv-label">Capability</div>
+      <div class="dv-value" id="dv-capability">Click to define</div>
+      <div class="dv-count" id="dvc-capability"></div>
+    </div>
+    <div class="dv-center">Meta-Features<br>↔ Technical ↔<br>↕ Social-Political ↕</div>
+    <div class="dv-node dv-right" onclick="openDiamondEdit('infrastructure')">
+      <div class="dv-label">Infrastructure</div>
+      <div class="dv-value" id="dv-infrastructure">Click to define</div>
+      <div class="dv-count" id="dvc-infrastructure"></div>
+    </div>
+    <div class="dv-node dv-bottom" onclick="openDiamondEdit('victim')">
+      <div class="dv-label">Victim</div>
+      <div class="dv-value" id="dv-victim">Click to define</div>
+      <div class="dv-count" id="dvc-victim"></div>
+    </div>
+  </div>
+
+  <h3>Diamond Model Evidence Mapping</h3>
+  <div id="diamond-evidence"></div>
+</div>
+
+<!-- TIMELINE -->
+<div class="view" id="v-timeline">
+  <h2>Event Timeline</h2>
+  <p class="subtitle">Chronological view of all observed events across investigations</p>
+  <div class="form-row" style="margin-bottom:12px">
+    <div class="form-group" style="max-width:300px">
+      <label>Filter by Investigation</label>
+      <select id="tl-case-filter" onchange="renderTimeline()">
+        <option value="">All Investigations</option>
+      </select>
+    </div>
+  </div>
+  <div class="tl" id="timeline-container"></div>
+</div>
+
+<!-- LINK GRAPH -->
+<div class="view" id="v-link-graph">
+  <h2>Link Analysis</h2>
+  <p class="subtitle">Visual relationships between evidence, infrastructure, and actors</p>
+  <div class="form-row" style="margin-bottom:12px">
+    <div class="form-group" style="max-width:300px">
+      <label>Investigation</label>
+      <select id="graph-case" onchange="renderGraph()">
+        <option value="">All</option>
+      </select>
+    </div>
+  </div>
+  <div class="graph-area" id="graph-area" style="min-height:400px"></div>
+  <p style="font-size:11px;color:var(--text3);margin-top:6px">Drag nodes to rearrange. Colors: 🔴 IOCs, 🔵 TTPs, 🟣 Infrastructure, 🟠 Malware, ⚪ Cases</p>
+</div>
+
+<!-- ATTRIBUTION -->
+<div class="view" id="v-attribution">
+  <h2>Attribution Matrix</h2>
+  <p class="subtitle">Score and assess attribution confidence across evidence layers</p>
+  <div class="form-row" style="margin-bottom:12px">
+    <div class="form-group" style="max-width:300px">
+      <label>Select Investigation</label>
+      <select id="attrib-case" onchange="renderAttribution()">
+        <option value="">-- select --</option>
+      </select>
+    </div>
+  </div>
+  <div id="attrib-content"></div>
+</div>
+
+<!-- REPORT -->
+<div class="view" id="v-report">
+  <h2>Generate Report</h2>
+  <p class="subtitle">Export investigation findings as structured intelligence report</p>
+  <div class="form-row">
+    <div class="form-group" style="max-width:300px">
+      <label>Select Investigation</label>
+      <select id="report-case">
+        <option value="">-- select --</option>
+      </select>
+    </div>
+    <div class="form-group" style="max-width:200px">
+      <label>Format</label>
+      <select id="report-format">
+        <option value="markdown">Markdown</option>
+        <option value="text">Plain Text</option>
+        <option value="stix">STIX 2.1 JSON</option>
+      </select>
+    </div>
+  </div>
+  <div class="btn-group">
+    <button class="btn btn-primary" onclick="generateReport()">Generate Report</button>
+    <button class="btn btn-ghost" onclick="copyReport()">📋 Copy to Clipboard</button>
+  </div>
+  <pre id="report-output" style="min-height:200px;white-space:pre-wrap"></pre>
+</div>
+
+</div><!-- end main -->
+
+<!-- MODALS -->
+<div class="modal-overlay" id="case-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('case-modal')">✕</button>
+    <h3>New Investigation</h3>
+    <div class="form-row"><div class="form-group"><label>Case Name</label><input type="text" id="case-name" placeholder="e.g., Incident 2025-0042"></div></div>
+    <div class="form-row"><div class="form-group"><label>Status</label><select id="case-status"><option>Active</option><option>Monitoring</option><option>Closed</option></select></div>
+    <div class="form-group"><label>Priority</label><select id="case-priority"><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select></div></div>
+    <div class="form-row"><div class="form-group"><label>Suspected Actor</label><input type="text" id="case-actor" placeholder="e.g., APT29 / Unknown"></div></div>
+    <div class="form-row"><div class="form-group"><label>Target Sector</label><input type="text" id="case-sector" placeholder="e.g., Government, Defense"></div></div>
+    <div class="form-row"><div class="form-group"><label>Description</label><textarea id="case-desc" rows="3" placeholder="Initial findings, context..."></textarea></div></div>
+    <div class="btn-group"><button class="btn btn-primary" onclick="saveCase()">Create Investigation</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ioc-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('ioc-modal')">✕</button>
+    <h3>Add IOC</h3>
+    <div class="form-row"><div class="form-group"><label>Type</label><select id="ioc-type">
+      <option value="hash-sha256">SHA256 Hash</option><option value="hash-md5">MD5 Hash</option><option value="hash-sha1">SHA1 Hash</option>
+      <option value="ip">IP Address</option><option value="domain">Domain</option><option value="url">URL</option>
+      <option value="email">Email Address</option><option value="filename">Filename</option><option value="mutex">Mutex</option>
+      <option value="registry">Registry Key</option><option value="useragent">User Agent</option><option value="yara">YARA Rule Name</option>
+      <option value="other">Other</option>
+    </select></div>
+    <div class="form-group"><label>Investigation</label><select id="ioc-case"></select></div></div>
+    <div class="form-row"><div class="form-group"><label>Value</label><input type="text" id="ioc-value" placeholder="The indicator value"></div></div>
+    <div class="form-row"><div class="form-group"><label>Source</label><input type="text" id="ioc-source" placeholder="Where this IOC was found"></div>
+    <div class="form-group"><label>Confidence</label><select id="ioc-confidence"><option>High</option><option>Medium</option><option>Low</option></select></div></div>
+    <div class="form-row"><div class="form-group"><label>First Seen</label><input type="date" id="ioc-first"></div>
+    <div class="form-group"><label>Last Seen</label><input type="date" id="ioc-last"></div></div>
+    <div class="form-row"><div class="form-group"><label>Tags</label><input type="text" id="ioc-tags" placeholder="Comma-separated tags"></div></div>
+    <div class="form-row"><div class="form-group"><label>Notes</label><textarea id="ioc-notes" rows="2" placeholder="Analysis notes..."></textarea></div></div>
+    <div class="form-row"><div class="form-group"><label>Diamond Vertex</label><select id="ioc-diamond">
+      <option value="">None</option><option value="adversary">Adversary</option><option value="capability">Capability</option>
+      <option value="infrastructure">Infrastructure</option><option value="victim">Victim</option>
+    </select></div></div>
+    <div class="btn-group"><button class="btn btn-primary" onclick="saveIOC()">Add IOC</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ioc-bulk-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('ioc-bulk-modal')">✕</button>
+    <h3>Bulk Import IOCs</h3>
+    <div class="form-row"><div class="form-group"><label>Investigation</label><select id="bulk-case"></select></div>
+    <div class="form-group"><label>Type</label><select id="bulk-type">
+      <option value="hash-sha256">SHA256</option><option value="hash-md5">MD5</option><option value="ip">IP Address</option>
+      <option value="domain">Domain</option><option value="url">URL</option><option value="other">Auto-detect</option>
+    </select></div></div>
+    <div class="form-row"><div class="form-group"><label>Paste IOCs (one per line)</label>
+    <textarea id="bulk-iocs" rows="8" placeholder="Paste indicators here, one per line..."></textarea></div></div>
+    <div class="form-row"><div class="form-group"><label>Source</label><input type="text" id="bulk-source" placeholder="Source of these IOCs"></div></div>
+    <div class="btn-group"><button class="btn btn-primary" onclick="bulkImportIOCs()">Import All</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="ttp-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('ttp-modal')">✕</button>
+    <h3>Add TTP Observation</h3>
+    <div class="form-row"><div class="form-group"><label>Investigation</label><select id="ttp-case"></select></div></div>
+    <div class="form-row"><div class="form-group"><label>MITRE ATT&CK Tactic</label><select id="ttp-tactic">
+      <option>Reconnaissance</option><option>Resource Development</option><option>Initial Access</option><option>Execution</option>
+      <option>Persistence</option><option>Privilege Escalation</option><option>Defense Evasion</option><option>Credential Access</option>
+      <option>Discovery</option><option>Lateral Movement</option><option>Collection</option><option>Command and Control</option>
+      <option>Exfiltration</option><option>Impact</option>
+    </select></div>
+    <div class="form-group"><label>Technique ID</label><input type="text" id="ttp-id" placeholder="e.g., T1566.001"></div></div>
+    <div class="form-row"><div class="form-group"><label>Technique Name</label><input type="text" id="ttp-name" placeholder="e.g., Spearphishing Attachment"></div></div>
+    <div class="form-row"><div class="form-group"><label>Observation Details</label><textarea id="ttp-details" rows="3" placeholder="How was this technique observed? Specific commands, tools, evidence..."></textarea></div></div>
+    <div class="form-row"><div class="form-group"><label>Date Observed</label><input type="date" id="ttp-date"></div>
+    <div class="form-group"><label>Confidence</label><select id="ttp-confidence"><option>High</option><option>Medium</option><option>Low</option></select></div></div>
+    <div class="form-row"><div class="form-group"><label>Detection Query (KQL/Sigma/Yara)</label><textarea id="ttp-detection" rows="2" placeholder="Associated detection rule..."></textarea></div></div>
+    <div class="btn-group"><button class="btn btn-primary" onclick="saveTTP()">Add TTP</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="infra-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('infra-modal')">✕</button>
+    <h3>Add Infrastructure</h3>
+    <div class="form-row"><div class="form-group"><label>Investigation</label><select id="infra-case"></select></div></div>
+    <div class="form-row"><div class="form-group"><label>Type</label><select id="infra-type">
+      <option>C2 Server</option><option>Staging Server</option><option>Exfil Endpoint</option><option>Redirector</option>
+      <option>Compromised Host</option><option>Domain (C2)</option><option>Domain (Phishing)</option><option>Email Relay</option>
+      <option>ORB Node</option><option>VPN/Proxy</option><option>Bulletproof Host</option><option>Cloud Service</option><option>Other</option>
+    </select></div>
+    <div class="form-group"><label>Address / Identifier</label><input type="text" id="infra-addr" placeholder="IP, domain, or URL"></div></div>
+    <div class="form-row"><div class="form-group"><label>ASN / Provider</label><input type="text" id="infra-asn" placeholder="e.g., AS13335 Cloudflare"></div>
+    <div class="form-group"><label>Geolocation</label><input type="text" id="infra-geo" placeholder="Country/City"></div></div>
+    <div class="form-row"><div class="form-group"><label>First Seen</label><input type="date" id="infra-first"></div>
+    <div class="form-group"><label>Last Seen</label><input type="date" id="infra-last"></div></div>
+    <div class="form-row"><div class="form-group"><label>SSL/TLS Details</label><input type="text" id="infra-ssl" placeholder="Cert subject, issuer, JARM hash..."></div></div>
+    <div class="form-row"><div class="form-group"><label>Linked IOCs (comma-separated IDs)</label><input type="text" id="infra-linked" placeholder="IOC IDs to link"></div></div>
+    <div class="form-row"><div class="form-group"><label>Notes</label><textarea id="infra-notes" rows="2"></textarea></div></div>
+    <div class="btn-group"><button class="btn btn-primary" onclick="saveInfra()">Add Infrastructure</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="malware-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('malware-modal')">✕</button>
+    <h3>Add Malware Sample</h3>
+    <div class="form-row"><div class="form-group"><label>Investigation</label><select id="mal-case"></select></div></div>
+    <div class="form-row"><div class="form-group"><label>Family Name</label><input type="text" id="mal-family" placeholder="e.g., SUNBURST, Cobalt Strike"></div>
+    <div class="form-group"><label>Sample Name</label><input type="text" id="mal-name" placeholder="Filename or identifier"></div></div>
+    <div class="form-row"><div class="form-group"><label>SHA256</label><input type="text" id="mal-hash" placeholder="SHA256 hash"></div></div>
+    <div class="form-row"><div class="form-group"><label>Type</label><select id="mal-type">
+      <option>Backdoor</option><option>RAT</option><option>Loader</option><option>Dropper</option><option>Infostealer</option>
+      <option>Ransomware</option><option>Wiper</option><option>Rootkit</option><option>Webshell</option><option>Implant</option>
+      <option>Exploit</option><option>Tool</option><option>Other</option>
+    </select></div>
+    <div class="form-group"><label>Platform</label><select id="mal-platform">
+      <option>Windows</option><option>Linux</option><option>macOS</option><option>Cross-platform</option><option>Android</option><option>iOS</option><option>Other</option>
+    </select></div></div>
+    <div class="form-row"><div class="form-group"><label>C2 Addresses</label><input type="text" id="mal-c2" placeholder="Extracted C2 endpoints (comma-separated)"></div></div>
+    <div class="form-row"><div class="form-group"><label>Analysis Notes</label><textarea id="mal-notes" rows="3" placeholder="Behavioral analysis, capabilities, evasion techniques..."></textarea></div></div>
+    <div class="form-row"><div class="form-group"><label>YARA Rule</label><textarea id="mal-yara" rows="3" placeholder="Paste YARA rule for this sample..."></textarea></div></div>
+    <div class="btn-group"><button class="btn btn-primary" onclick="saveMalware()">Add Sample</button></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="diamond-edit-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('diamond-edit-modal')">✕</button>
+    <h3 id="diamond-edit-title">Edit Vertex</h3>
+    <div class="form-row"><div class="form-group"><label>Description</label><textarea id="diamond-edit-desc" rows="3"></textarea></div></div>
+    <div class="form-row"><div class="form-group"><label>Details (one per line)</label><textarea id="diamond-edit-items" rows="5" placeholder="Add specific items for this vertex..."></textarea></div></div>
+    <div class="btn-group"><button class="btn btn-primary" onclick="saveDiamondEdit()">Save</button></div>
+  </div>
+</div>
+
+<script>
+// =================== DATA STORE ===================
+let DB = {
+  cases: [],    // {id, name, status, priority, actor, sector, desc, created, diamond:{adversary,capability,infrastructure,victim}}
+  iocs: [],     // {id, type, value, caseId, source, confidence, firstSeen, lastSeen, tags[], notes, diamond}
+  ttps: [],     // {id, caseId, tactic, techId, techName, details, date, confidence, detection}
+  infra: [],    // {id, caseId, type, addr, asn, geo, firstSeen, lastSeen, ssl, linked, notes}
+  malware: [],  // {id, caseId, family, name, hash, type, platform, c2, notes, yara}
+};
+
+let nextId = 1;
+function genId(){ return 'id-' + (nextId++) + '-' + Date.now().toString(36); }
+
+function save(){ localStorage.setItem('apt-tracker-db', JSON.stringify(DB)); localStorage.setItem('apt-tracker-nid', nextId); }
+function load(){
+  try {
+    const d = localStorage.getItem('apt-tracker-db');
+    if(d) DB = JSON.parse(d);
+    const n = localStorage.getItem('apt-tracker-nid');
+    if(n) nextId = parseInt(n);
+  } catch(e){}
+}
+load();
+
+// =================== NAVIGATION ===================
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    item.classList.add('active');
+    const vId = 'v-' + item.dataset.view;
+    document.getElementById(vId).classList.add('active');
+    refreshView(item.dataset.view);
+  });
+});
+
+function refreshView(view){
+  updateCounts();
+  if(view === 'dashboard') renderDashboard();
+  else if(view === 'cases') renderCases();
+  else if(view === 'iocs') renderIOCs();
+  else if(view === 'ttps') renderTTPs();
+  else if(view === 'infrastructure') renderInfra();
+  else if(view === 'malware') renderMalwareList();
+  else if(view === 'diamond') renderDiamond();
+  else if(view === 'timeline') renderTimeline();
+  else if(view === 'link-graph') renderGraph();
+  else if(view === 'attribution') renderAttribution();
+  populateCaseDropdowns();
+}
+
+function updateCounts(){
+  document.getElementById('cnt-cases').textContent = DB.cases.length;
+  document.getElementById('cnt-inv').textContent = DB.cases.length;
+  document.getElementById('cnt-ioc').textContent = DB.iocs.length;
+  document.getElementById('cnt-ttp').textContent = DB.ttps.length;
+  document.getElementById('cnt-infra').textContent = DB.infra.length;
+  document.getElementById('cnt-mal').textContent = DB.malware.length;
+}
+
+function populateCaseDropdowns(){
+  const selectors = ['ioc-case','ttp-case','infra-case','mal-case','diamond-case','tl-case-filter','graph-case','attrib-case','report-case','bulk-case'];
+  selectors.forEach(sid => {
+    const sel = document.getElementById(sid);
+    if(!sel) return;
+    const val = sel.value;
+    const hasAll = sid.includes('filter') || sid === 'graph-case';
+    sel.innerHTML = hasAll ? '<option value="">All</option>' : '<option value="">-- select --</option>';
+    DB.cases.forEach(c => {
+      sel.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+    });
+    sel.value = val;
+  });
+}
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// =================== CASES ===================
+function saveCase(){
+  const c = {
+    id: genId(), name: document.getElementById('case-name').value || 'Untitled',
+    status: document.getElementById('case-status').value,
+    priority: document.getElementById('case-priority').value,
+    actor: document.getElementById('case-actor').value,
+    sector: document.getElementById('case-sector').value,
+    desc: document.getElementById('case-desc').value,
+    created: new Date().toISOString().split('T')[0],
+    diamond: {adversary:{desc:'',items:[]},capability:{desc:'',items:[]},infrastructure:{desc:'',items:[]},victim:{desc:'',items:[]}}
+  };
+  DB.cases.push(c); save(); closeModal('case-modal');
+  ['case-name','case-actor','case-sector','case-desc'].forEach(id => document.getElementById(id).value = '');
+  refreshView('cases');
+}
+
+function deleteCase(id){
+  if(!confirm('Delete this investigation and all linked evidence?')) return;
+  DB.cases = DB.cases.filter(c => c.id !== id);
+  DB.iocs = DB.iocs.filter(i => i.caseId !== id);
+  DB.ttps = DB.ttps.filter(t => t.caseId !== id);
+  DB.infra = DB.infra.filter(i => i.caseId !== id);
+  DB.malware = DB.malware.filter(m => m.caseId !== id);
+  save(); refreshView('cases');
+}
+
+function renderCases(){
+  const el = document.getElementById('cases-list');
+  if(!DB.cases.length){ el.innerHTML = '<div class="empty-state"><div class="icon">📁</div><p>No investigations yet. Create one to start tracking.</p></div>'; return; }
+  let html = '<table><tr><th>Name</th><th>Status</th><th>Priority</th><th>Suspected Actor</th><th>Evidence</th><th>Created</th><th></th></tr>';
+  DB.cases.forEach(c => {
+    const evCount = DB.iocs.filter(i=>i.caseId===c.id).length + DB.ttps.filter(t=>t.caseId===c.id).length + DB.infra.filter(i=>i.caseId===c.id).length + DB.malware.filter(m=>m.caseId===c.id).length;
+    const pBadge = {Critical:'badge-red',High:'badge-orange',Medium:'badge-yellow',Low:'badge-green'}[c.priority]||'badge-blue';
+    const sBadge = {Active:'badge-green',Monitoring:'badge-blue',Closed:'badge-purple'}[c.status]||'badge-blue';
+    html += `<tr><td><strong>${esc(c.name)}</strong><br><span style="font-size:11px;color:var(--text3)">${esc(c.desc||'').substring(0,60)}</span></td>
+      <td><span class="badge ${sBadge}">${c.status}</span></td>
+      <td><span class="badge ${pBadge}">${c.priority}</span></td>
+      <td>${esc(c.actor||'Unknown')}</td>
+      <td>${evCount} items</td>
+      <td>${c.created}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteCase('${c.id}')">✕</button></td></tr>`;
+  });
+  html += '</table>';
+  el.innerHTML = html;
+}
+
+// =================== IOCs ===================
+function saveIOC(){
+  const ioc = {
+    id: genId(), type: document.getElementById('ioc-type').value,
+    value: document.getElementById('ioc-value').value,
+    caseId: document.getElementById('ioc-case').value,
+    source: document.getElementById('ioc-source').value,
+    confidence: document.getElementById('ioc-confidence').value,
+    firstSeen: document.getElementById('ioc-first').value,
+    lastSeen: document.getElementById('ioc-last').value,
+    tags: document.getElementById('ioc-tags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    notes: document.getElementById('ioc-notes').value,
+    diamond: document.getElementById('ioc-diamond').value,
+    added: new Date().toISOString()
+  };
+  if(!ioc.value){alert('IOC value is required'); return;}
+  DB.iocs.push(ioc); save(); closeModal('ioc-modal');
+  ['ioc-value','ioc-source','ioc-tags','ioc-notes'].forEach(id => document.getElementById(id).value = '');
+  refreshView('iocs');
+}
+
+function bulkImportIOCs(){
+  const caseId = document.getElementById('bulk-case').value;
+  const type = document.getElementById('bulk-type').value;
+  const source = document.getElementById('bulk-source').value;
+  const lines = document.getElementById('bulk-iocs').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  lines.forEach(line => {
+    let t = type;
+    if(type === 'other'){
+      if(/^[a-f0-9]{64}$/i.test(line)) t = 'hash-sha256';
+      else if(/^[a-f0-9]{32}$/i.test(line)) t = 'hash-md5';
+      else if(/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(line)) t = 'ip';
+      else if(/^https?:\/\//i.test(line)) t = 'url';
+      else if(/\.\w{2,}$/.test(line) && !line.includes('/')) t = 'domain';
+      else t = 'other';
+    }
+    DB.iocs.push({id:genId(),type:t,value:line.replace(/[\[\]]/g,''),caseId,source,confidence:'Medium',firstSeen:'',lastSeen:'',tags:[],notes:'',diamond:'',added:new Date().toISOString()});
+  });
+  save(); closeModal('ioc-bulk-modal');
+  document.getElementById('bulk-iocs').value = '';
+  alert(`Imported ${lines.length} IOCs`);
+  refreshView('iocs');
+}
+
+function deleteIOC(id){ DB.iocs = DB.iocs.filter(i=>i.id!==id); save(); renderIOCs(); updateCounts(); }
+
+function renderIOCs(){
+  const el = document.getElementById('ioc-table-container');
+  const filter = (document.getElementById('ioc-filter').value||'').toLowerCase();
+  const typeFilter = document.getElementById('ioc-type-filter').value;
+  let items = DB.iocs;
+  if(filter) items = items.filter(i => (i.value+i.source+i.notes+i.tags.join(',')).toLowerCase().includes(filter));
+  if(typeFilter) items = items.filter(i => i.type === typeFilter);
+
+  if(!items.length){ el.innerHTML = '<div class="empty-state"><div class="icon">🔍</div><p>No IOCs yet. Add indicators to start building your repository.</p></div>'; return; }
+  let html = '<table><tr><th>Type</th><th>Value</th><th>Investigation</th><th>Source</th><th>Confidence</th><th>Tags</th><th></th></tr>';
+  items.forEach(ioc => {
+    const caseName = DB.cases.find(c=>c.id===ioc.caseId)?.name || '—';
+    const confBadge = {High:'badge-green',Medium:'badge-yellow',Low:'badge-red'}[ioc.confidence]||'badge-blue';
+    html += `<tr>
+      <td><span class="badge badge-cyan">${ioc.type}</span></td>
+      <td style="font-family:monospace;font-size:11px;word-break:break-all">${esc(ioc.value)}</td>
+      <td style="font-size:11px">${esc(caseName)}</td>
+      <td style="font-size:11px">${esc(ioc.source||'')}</td>
+      <td><span class="badge ${confBadge}">${ioc.confidence}</span></td>
+      <td>${ioc.tags.map(t=>'<span class="tag">'+esc(t)+'</span>').join('')}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteIOC('${ioc.id}')">✕</button></td></tr>`;
+  });
+  html += '</table>';
+  el.innerHTML = html;
+}
+
+// =================== TTPs ===================
+function saveTTP(){
+  const t = {
+    id: genId(), caseId: document.getElementById('ttp-case').value,
+    tactic: document.getElementById('ttp-tactic').value,
+    techId: document.getElementById('ttp-id').value,
+    techName: document.getElementById('ttp-name').value,
+    details: document.getElementById('ttp-details').value,
+    date: document.getElementById('ttp-date').value,
+    confidence: document.getElementById('ttp-confidence').value,
+    detection: document.getElementById('ttp-detection').value,
+    added: new Date().toISOString()
+  };
+  DB.ttps.push(t); save(); closeModal('ttp-modal');
+  ['ttp-id','ttp-name','ttp-details','ttp-detection'].forEach(id => document.getElementById(id).value = '');
+  refreshView('ttps');
+}
+function deleteTTP(id){ DB.ttps = DB.ttps.filter(t=>t.id!==id); save(); renderTTPs(); updateCounts(); }
+
+function renderTTPs(){
+  const el = document.getElementById('ttp-list');
+  if(!DB.ttps.length){ el.innerHTML = '<div class="empty-state"><div class="icon">⚔️</div><p>No TTPs recorded. Map observed techniques to MITRE ATT&CK.</p></div>'; return; }
+  let html = '<table><tr><th>Tactic</th><th>Technique</th><th>Investigation</th><th>Observation</th><th>Confidence</th><th>Date</th><th></th></tr>';
+  DB.ttps.forEach(t => {
+    const caseName = DB.cases.find(c=>c.id===t.caseId)?.name || '—';
+    const confBadge = {High:'badge-green',Medium:'badge-yellow',Low:'badge-red'}[t.confidence]||'badge-blue';
+    html += `<tr><td><span class="badge badge-blue">${t.tactic}</span></td>
+      <td><strong>${esc(t.techId)}</strong> ${esc(t.techName)}</td>
+      <td style="font-size:11px">${esc(caseName)}</td>
+      <td style="font-size:11px;max-width:250px">${esc(t.details||'').substring(0,120)}</td>
+      <td><span class="badge ${confBadge}">${t.confidence}</span></td>
+      <td style="font-size:11px">${t.date||''}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteTTP('${t.id}')">✕</button></td></tr>`;
+  });
+  html += '</table>';
+  el.innerHTML = html;
+
+  // Heatmap
+  const hm = document.getElementById('attack-heatmap');
+  const tactics = ['Reconnaissance','Resource Development','Initial Access','Execution','Persistence','Privilege Escalation','Defense Evasion','Credential Access','Discovery','Lateral Movement','Collection','Command and Control','Exfiltration','Impact'];
+  let hmHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px">';
+  tactics.forEach(tac => {
+    const count = DB.ttps.filter(t => t.tactic === tac).length;
+    const bg = count === 0 ? 'var(--surface2)' : count <= 2 ? 'rgba(234,179,8,.3)' : count <= 5 ? 'rgba(249,115,22,.4)' : 'rgba(239,68,68,.5)';
+    hmHtml += `<div style="background:${bg};padding:6px 10px;border-radius:4px;font-size:11px;min-width:100px;text-align:center">
+      <div style="font-weight:600">${count}</div><div style="color:var(--text3);font-size:10px">${tac}</div></div>`;
+  });
+  hmHtml += '</div>';
+  hm.innerHTML = hmHtml;
+}
+
+// =================== INFRASTRUCTURE ===================
+function saveInfra(){
+  const inf = {
+    id: genId(), caseId: document.getElementById('infra-case').value,
+    type: document.getElementById('infra-type').value,
+    addr: document.getElementById('infra-addr').value,
+    asn: document.getElementById('infra-asn').value,
+    geo: document.getElementById('infra-geo').value,
+    firstSeen: document.getElementById('infra-first').value,
+    lastSeen: document.getElementById('infra-last').value,
+    ssl: document.getElementById('infra-ssl').value,
+    linked: document.getElementById('infra-linked').value,
+    notes: document.getElementById('infra-notes').value,
+    added: new Date().toISOString()
+  };
+  DB.infra.push(inf); save(); closeModal('infra-modal');
+  ['infra-addr','infra-asn','infra-geo','infra-ssl','infra-linked','infra-notes'].forEach(id => document.getElementById(id).value = '');
+  refreshView('infrastructure');
+}
+function deleteInfra(id){ DB.infra = DB.infra.filter(i=>i.id!==id); save(); renderInfra(); updateCounts(); }
+
+function renderInfra(){
+  const el = document.getElementById('infra-list');
+  if(!DB.infra.length){ el.innerHTML = '<div class="empty-state"><div class="icon">🌐</div><p>No infrastructure tracked. Add C2 servers, domains, and relay nodes.</p></div>'; return; }
+  let html = '<table><tr><th>Type</th><th>Address</th><th>ASN/Provider</th><th>Location</th><th>Investigation</th><th>Active</th><th></th></tr>';
+  DB.infra.forEach(inf => {
+    const caseName = DB.cases.find(c=>c.id===inf.caseId)?.name || '—';
+    html += `<tr><td><span class="badge badge-purple">${inf.type}</span></td>
+      <td style="font-family:monospace;font-size:11px">${esc(inf.addr)}</td>
+      <td style="font-size:11px">${esc(inf.asn||'')}</td>
+      <td style="font-size:11px">${esc(inf.geo||'')}</td>
+      <td style="font-size:11px">${esc(caseName)}</td>
+      <td style="font-size:11px">${inf.firstSeen||'?'} → ${inf.lastSeen||'?'}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteInfra('${inf.id}')">✕</button></td></tr>`;
+  });
+  html += '</table>';
+  el.innerHTML = html;
+}
+
+// =================== MALWARE ===================
+function saveMalware(){
+  const m = {
+    id: genId(), caseId: document.getElementById('mal-case').value,
+    family: document.getElementById('mal-family').value,
+    name: document.getElementById('mal-name').value,
+    hash: document.getElementById('mal-hash').value,
+    type: document.getElementById('mal-type').value,
+    platform: document.getElementById('mal-platform').value,
+    c2: document.getElementById('mal-c2').value,
+    notes: document.getElementById('mal-notes').value,
+    yara: document.getElementById('mal-yara').value,
+    added: new Date().toISOString()
+  };
+  DB.malware.push(m); save(); closeModal('malware-modal');
+  ['mal-family','mal-name','mal-hash','mal-c2','mal-notes','mal-yara'].forEach(id => document.getElementById(id).value = '');
+  refreshView('malware');
+}
+function deleteMalware(id){ DB.malware = DB.malware.filter(m=>m.id!==id); save(); renderMalwareList(); updateCounts(); }
+
+function renderMalwareList(){
+  const el = document.getElementById('malware-list');
+  if(!DB.malware.length){ el.innerHTML = '<div class="empty-state"><div class="icon">🦠</div><p>No malware samples tracked. Add samples with analysis notes and YARA rules.</p></div>'; return; }
+  let html = '<table><tr><th>Family</th><th>Sample</th><th>Type</th><th>Platform</th><th>SHA256</th><th>Investigation</th><th></th></tr>';
+  DB.malware.forEach(m => {
+    const caseName = DB.cases.find(c=>c.id===m.caseId)?.name || '—';
+    html += `<tr><td><strong>${esc(m.family)}</strong></td>
+      <td style="font-size:11px">${esc(m.name||'')}</td>
+      <td><span class="badge badge-orange">${m.type}</span></td>
+      <td style="font-size:11px">${m.platform}</td>
+      <td style="font-family:monospace;font-size:10px;max-width:150px;overflow:hidden;text-overflow:ellipsis">${esc(m.hash||'')}</td>
+      <td style="font-size:11px">${esc(caseName)}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteMalware('${m.id}')">✕</button></td></tr>`;
+  });
+  html += '</table>';
+  el.innerHTML = html;
+}
+
+// =================== DIAMOND MODEL ===================
+let currentDiamondVertex = '';
+
+function renderDiamond(){
+  const caseId = document.getElementById('diamond-case').value;
+  const c = DB.cases.find(c => c.id === caseId);
+  ['adversary','capability','infrastructure','victim'].forEach(v => {
+    const valEl = document.getElementById('dv-'+v);
+    const countEl = document.getElementById('dvc-'+v);
+    const nodeEl = valEl.closest('.dv-node');
+    if(c && c.diamond[v] && c.diamond[v].desc){
+      valEl.textContent = c.diamond[v].desc.substring(0,40);
+      countEl.textContent = (c.diamond[v].items||[]).length + ' items';
+      nodeEl.classList.add('has-data');
+    } else {
+      valEl.textContent = 'Click to define';
+      countEl.textContent = '';
+      nodeEl.classList.remove('has-data');
+    }
+  });
+
+  // Show evidence mapped to diamond vertices for this case
+  const evEl = document.getElementById('diamond-evidence');
+  if(!caseId){ evEl.innerHTML = '<p style="color:var(--text3);font-size:12px">Select an investigation above to map evidence to Diamond Model vertices.</p>'; return; }
+  const iocs = DB.iocs.filter(i => i.caseId === caseId && i.diamond);
+  if(!iocs.length){ evEl.innerHTML = '<p style="color:var(--text3);font-size:12px">No IOCs mapped to Diamond vertices yet. When adding IOCs, set the Diamond Vertex field.</p>'; return; }
+  let html = '<table><tr><th>Vertex</th><th>IOC Type</th><th>Value</th><th>Source</th></tr>';
+  iocs.forEach(i => {
+    html += `<tr><td><span class="badge badge-cyan">${i.diamond}</span></td><td>${i.type}</td><td style="font-family:monospace;font-size:11px">${esc(i.value)}</td><td style="font-size:11px">${esc(i.source||'')}</td></tr>`;
+  });
+  html += '</table>';
+  evEl.innerHTML = html;
+}
+
+function openDiamondEdit(vertex){
+  const caseId = document.getElementById('diamond-case').value;
+  if(!caseId){alert('Select an investigation first'); return;}
+  currentDiamondVertex = vertex;
+  const c = DB.cases.find(c => c.id === caseId);
+  document.getElementById('diamond-edit-title').textContent = 'Edit: ' + vertex.charAt(0).toUpperCase() + vertex.slice(1);
+  document.getElementById('diamond-edit-desc').value = c.diamond[vertex]?.desc || '';
+  document.getElementById('diamond-edit-items').value = (c.diamond[vertex]?.items || []).join('\n');
+  openModal('diamond-edit-modal');
+}
+
+function saveDiamondEdit(){
+  const caseId = document.getElementById('diamond-case').value;
+  const c = DB.cases.find(c => c.id === caseId);
+  if(!c) return;
+  c.diamond[currentDiamondVertex] = {
+    desc: document.getElementById('diamond-edit-desc').value,
+    items: document.getElementById('diamond-edit-items').value.split('\n').filter(Boolean)
+  };
+  save(); closeModal('diamond-edit-modal'); renderDiamond();
+}
+
+// =================== TIMELINE ===================
+function renderTimeline(){
+  const el = document.getElementById('timeline-container');
+  const caseFilter = document.getElementById('tl-case-filter').value;
+
+  let events = [];
+  DB.iocs.forEach(i => {
+    if(caseFilter && i.caseId !== caseFilter) return;
+    events.push({date: i.firstSeen || i.added?.split('T')[0] || '', type:'ioc', title: `IOC: ${i.type} - ${i.value.substring(0,40)}`, desc: i.source ? 'Source: '+i.source : '', caseId: i.caseId});
+  });
+  DB.ttps.forEach(t => {
+    if(caseFilter && t.caseId !== caseFilter) return;
+    events.push({date: t.date || '', type:'ttp', title: `TTP: ${t.techId} ${t.techName}`, desc: t.details?.substring(0,100)||'', caseId: t.caseId});
+  });
+  DB.infra.forEach(i => {
+    if(caseFilter && i.caseId !== caseFilter) return;
+    events.push({date: i.firstSeen || '', type:'infra', title: `Infra: ${i.type} - ${i.addr}`, desc: i.notes?.substring(0,100)||'', caseId: i.caseId});
+  });
+  DB.malware.forEach(m => {
+    if(caseFilter && m.caseId !== caseFilter) return;
+    events.push({date: m.added?.split('T')[0]||'', type:'malware', title: `Malware: ${m.family} (${m.type})`, desc: m.name||'', caseId: m.caseId});
+  });
+
+  events.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+  if(!events.length){ el.innerHTML = '<div class="empty-state"><div class="icon">📅</div><p>No events to display. Add evidence with dates to build the timeline.</p></div>'; return; }
+
+  el.innerHTML = events.map(e => {
+    const caseName = DB.cases.find(c=>c.id===e.caseId)?.name||'';
+    return `<div class="tl-item type-${e.type}">
+      <div class="tl-date">${e.date||'No date'} ${caseName ? '• '+esc(caseName) : ''}</div>
+      <div class="tl-title">${esc(e.title)}</div>
+      ${e.desc ? '<div class="tl-desc">'+esc(e.desc)+'</div>' : ''}
+    </div>`;
+  }).join('');
+}
+
+// =================== LINK GRAPH ===================
+function renderGraph(){
+  const area = document.getElementById('graph-area');
+  const caseFilter = document.getElementById('graph-case').value;
+
+  let nodes = [];
+  let edges = [];
+
+  // Collect nodes
+  DB.cases.forEach(c => {
+    if(caseFilter && c.id !== caseFilter) return;
+    nodes.push({id:c.id, label:c.name.substring(0,20), type:'case', color:'#94a3b8'});
+  });
+  DB.iocs.forEach(i => {
+    if(caseFilter && i.caseId !== caseFilter) return;
+    nodes.push({id:i.id, label:i.value.substring(0,24), type:'ioc', color:'#ef4444'});
+    if(i.caseId) edges.push({from:i.caseId, to:i.id});
+  });
+  DB.ttps.forEach(t => {
+    if(caseFilter && t.caseId !== caseFilter) return;
+    nodes.push({id:t.id, label:(t.techId+' '+t.techName).substring(0,24), type:'ttp', color:'#3b82f6'});
+    if(t.caseId) edges.push({from:t.caseId, to:t.id});
+  });
+  DB.infra.forEach(inf => {
+    if(caseFilter && inf.caseId !== caseFilter) return;
+    nodes.push({id:inf.id, label:inf.addr.substring(0,24), type:'infra', color:'#a855f7'});
+    if(inf.caseId) edges.push({from:inf.caseId, to:inf.id});
+  });
+  DB.malware.forEach(m => {
+    if(caseFilter && m.caseId !== caseFilter) return;
+    nodes.push({id:m.id, label:m.family.substring(0,20), type:'malware', color:'#f97316'});
+    if(m.caseId) edges.push({from:m.caseId, to:m.id});
+    // Link malware C2 to infrastructure
+    if(m.c2){
+      m.c2.split(',').forEach(c2 => {
+        const inf = DB.infra.find(i => i.addr.trim() === c2.trim());
+        if(inf) edges.push({from:m.id, to:inf.id});
+      });
+    }
+  });
+
+  if(!nodes.length){
+    area.innerHTML = '<div class="empty-state" style="padding-top:80px"><div class="icon">🕸️</div><p>Add evidence to visualize relationships.</p></div>';
+    return;
+  }
+
+  // Simple force-directed-ish layout
+  const W = area.clientWidth || 800;
+  const H = 400;
+  area.style.height = H + 'px';
+
+  // Position nodes in a circle-ish pattern grouped by type
+  const typeGroups = {};
+  nodes.forEach(n => { if(!typeGroups[n.type]) typeGroups[n.type] = []; typeGroups[n.type].push(n); });
+  const types = Object.keys(typeGroups);
+  types.forEach((type, ti) => {
+    const group = typeGroups[type];
+    const cx = W * (ti + 1) / (types.length + 1);
+    group.forEach((n, ni) => {
+      n.x = cx + (Math.random() - 0.5) * 120;
+      n.y = 50 + (ni / Math.max(group.length-1, 1)) * (H - 100) + (Math.random() - 0.5) * 30;
+    });
+  });
+
+  let html = '<svg width="'+W+'" height="'+H+'" style="position:absolute;top:0;left:0">';
+  // Draw edges
+  edges.forEach(e => {
+    const from = nodes.find(n => n.id === e.from);
+    const to = nodes.find(n => n.id === e.to);
+    if(from && to){
+      html += `<line x1="${from.x}" y1="${from.y}" x2="${to.x}" y2="${to.y}" stroke="#1e293b" stroke-width="1"/>`;
+    }
+  });
+  html += '</svg>';
+
+  // Draw nodes
+  nodes.forEach(n => {
+    html += `<div class="graph-node" style="left:${n.x-40}px;top:${n.y-12}px;background:${n.color}22;border-color:${n.color};color:${n.color}">${n.label}</div>`;
+  });
+
+  area.innerHTML = html;
+}
+
+// =================== ATTRIBUTION ===================
+function renderAttribution(){
+  const caseId = document.getElementById('attrib-case').value;
+  const el = document.getElementById('attrib-content');
+  if(!caseId){ el.innerHTML = '<p style="color:var(--text3)">Select an investigation to build attribution assessment.</p>'; return; }
+
+  const c = DB.cases.find(c=>c.id===caseId);
+  const iocs = DB.iocs.filter(i=>i.caseId===caseId);
+  const ttps = DB.ttps.filter(t=>t.caseId===caseId);
+  const infra = DB.infra.filter(i=>i.caseId===caseId);
+  const malware = DB.malware.filter(m=>m.caseId===caseId);
+
+  const layers = [
+    {name:'Layer 1: Forensic Evidence', desc:'OPSEC failures, metadata, direct evidence', items: iocs.filter(i=>i.tags.includes('forensic')||i.notes?.toLowerCase().includes('opsec')), score:0},
+    {name:'Layer 2: Malware & Tool Analysis', desc:'Code similarity, shared libraries, PDB paths, unique artifacts', items: malware, score:0},
+    {name:'Layer 3: Infrastructure Patterns', desc:'Domain registration, hosting, C2 patterns, reuse', items: infra, score:0},
+    {name:'Layer 4: Organizational Behavior', desc:'Working hours, language, operational tempo', items: ttps.filter(t=>t.details?.toLowerCase().includes('behavior')||t.details?.toLowerCase().includes('timezone')||t.details?.toLowerCase().includes('language')), score:0},
+    {name:'Layer 5: Geopolitical Context', desc:'Motivation, timing, targeting patterns', items: [{note:'assessed based on targeting: '+c.sector+', suspected: '+c.actor}], score:0},
+  ];
+
+  layers.forEach(l => { l.score = Math.min(l.items.length, 5); });
+  const totalScore = layers.reduce((s,l)=>s+l.score, 0);
+  const maxScore = 25;
+  const confLevel = totalScore >= 15 ? 'High' : totalScore >= 8 ? 'Moderate' : totalScore >= 3 ? 'Low' : 'Insufficient';
+  const confColor = {High:'var(--green)',Moderate:'var(--accent3)',Low:'var(--accent2)',Insufficient:'var(--text3)'}[confLevel];
+
+  let html = `<div class="card">
+    <div class="card-header"><div class="card-title">Attribution Assessment: ${esc(c.name)}</div></div>
+    <div style="text-align:center;margin:16px 0">
+      <div style="font-size:13px;color:var(--text3)">Overall Confidence</div>
+      <div style="font-size:36px;font-weight:700;color:${confColor}">${confLevel}</div>
+      <div style="font-size:12px;color:var(--text3)">Evidence Score: ${totalScore}/${maxScore} across ${layers.filter(l=>l.score>0).length}/5 layers</div>
+      <div style="font-size:14px;margin-top:8px">Suspected Actor: <strong>${esc(c.actor||'Unknown')}</strong></div>
+    </div>
+  </div>`;
+
+  html += '<h3>Evidence by Attribution Layer</h3>';
+  layers.forEach(l => {
+    const pct = (l.score/5)*100;
+    const barColor = l.score >= 4 ? 'var(--green)' : l.score >= 2 ? 'var(--accent3)' : l.score >= 1 ? 'var(--accent2)' : 'var(--surface2)';
+    html += `<div class="card">
+      <div class="card-title">${l.name}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">${l.desc}</div>
+      <div style="height:6px;background:var(--surface2);border-radius:3px;margin-bottom:6px"><div style="height:100%;width:${pct}%;background:${barColor};border-radius:3px"></div></div>
+      <div style="font-size:11px;color:var(--text2)">${l.items.length} evidence item(s) in this layer</div>
+    </div>`;
+  });
+
+  html += `<div class="card" style="border-color:var(--accent3)">
+    <div class="card-title" style="color:var(--accent3)">⚠️ Attribution Caveats</div>
+    <ul style="font-size:12px;color:var(--text2);padding-left:20px;margin-top:6px;line-height:1.8">
+      <li>Single-layer attribution is easily manipulated (false flags)</li>
+      <li>Tool reuse does not confirm attribution (tools get shared/leaked)</li>
+      <li>Infrastructure can be shared across multiple actors</li>
+      <li>Strong attribution requires multiple independent evidence layers</li>
+      <li>Consider alternative hypotheses before finalizing assessment</li>
+    </ul>
+  </div>`;
+
+  el.innerHTML = html;
+}
+
+// =================== DASHBOARD ===================
+function renderDashboard(){
+  document.getElementById('s-cases').textContent = DB.cases.length;
+  document.getElementById('s-iocs').textContent = DB.iocs.length;
+  document.getElementById('s-ttps').textContent = DB.ttps.length;
+  document.getElementById('s-infra').textContent = DB.infra.length;
+
+  const casesEl = document.getElementById('dash-cases');
+  if(!DB.cases.length){
+    casesEl.innerHTML = '<div class="empty-state"><div class="icon">📁</div><p>No investigations yet.</p><button class="btn btn-primary" onclick="document.querySelector(\'[data-view=cases]\').click(); setTimeout(()=>openModal(\'case-modal\'),100)">Create First Investigation</button></div>';
+  } else {
+    let html = '<div class="grid-2">';
+    DB.cases.forEach(c => {
+      const evCount = DB.iocs.filter(i=>i.caseId===c.id).length + DB.ttps.filter(t=>t.caseId===c.id).length + DB.infra.filter(i=>i.caseId===c.id).length + DB.malware.filter(m=>m.caseId===c.id).length;
+      const pBadge = {Critical:'badge-red',High:'badge-orange',Medium:'badge-yellow',Low:'badge-green'}[c.priority]||'badge-blue';
+      html += `<div class="card" style="cursor:pointer" onclick="document.querySelector('[data-view=cases]').click()">
+        <div style="display:flex;justify-content:space-between;align-items:center"><strong>${esc(c.name)}</strong><span class="badge ${pBadge}">${c.priority}</span></div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">Actor: ${esc(c.actor||'Unknown')} • ${evCount} evidence items</div>
+      </div>`;
+    });
+    html += '</div>';
+    casesEl.innerHTML = html;
+  }
+
+  // Recent evidence
+  const recentEl = document.getElementById('dash-recent');
+  const allEvidence = [
+    ...DB.iocs.map(i=>({...i, evType:'IOC', evLabel:i.type+': '+i.value.substring(0,30)})),
+    ...DB.ttps.map(t=>({...t, evType:'TTP', evLabel:t.techId+' '+t.techName})),
+    ...DB.infra.map(i=>({...i, evType:'Infra', evLabel:i.type+': '+i.addr})),
+    ...DB.malware.map(m=>({...m, evType:'Malware', evLabel:m.family+' ('+m.type+')'})),
+  ].sort((a,b)=>(b.added||'').localeCompare(a.added||'')).slice(0,8);
+
+  if(!allEvidence.length){
+    recentEl.innerHTML = '<p style="color:var(--text3);font-size:12px">No evidence collected yet.</p>';
+  } else {
+    let html = '<table><tr><th>Type</th><th>Evidence</th><th>Investigation</th><th>Added</th></tr>';
+    allEvidence.forEach(e => {
+      const caseName = DB.cases.find(c=>c.id===e.caseId)?.name || '—';
+      const colors = {IOC:'badge-red',TTP:'badge-blue',Infra:'badge-purple',Malware:'badge-orange'};
+      html += `<tr><td><span class="badge ${colors[e.evType]}">${e.evType}</span></td>
+        <td style="font-size:11px">${esc(e.evLabel)}</td>
+        <td style="font-size:11px">${esc(caseName)}</td>
+        <td style="font-size:11px">${e.added?.split('T')[0]||''}</td></tr>`;
+    });
+    html += '</table>';
+    recentEl.innerHTML = html;
+  }
+}
+
+// =================== REPORT ===================
+function generateReport(){
+  const caseId = document.getElementById('report-case').value;
+  const format = document.getElementById('report-format').value;
+  const el = document.getElementById('report-output');
+
+  if(!caseId){ el.textContent = 'Select an investigation to generate a report.'; return; }
+  const c = DB.cases.find(c=>c.id===caseId);
+  const iocs = DB.iocs.filter(i=>i.caseId===caseId);
+  const ttps = DB.ttps.filter(t=>t.caseId===caseId);
+  const infra = DB.infra.filter(i=>i.caseId===caseId);
+  const malware = DB.malware.filter(m=>m.caseId===caseId);
+
+  if(format === 'stix'){
+    const stix = {
+      type: "bundle",
+      id: "bundle--"+c.id,
+      objects: [
+        {type:"intrusion-set",id:"intrusion-set--"+c.id,name:c.actor||c.name,description:c.desc,created:c.created+"T00:00:00Z",
+         first_seen:c.created+"T00:00:00Z",primary_motivation:"unknown",resource_level:"unknown"},
+        ...iocs.map(i=>({type:"indicator",id:"indicator--"+i.id,name:i.value,pattern:`[${i.type}:value = '${i.value}']`,
+          pattern_type:"stix",valid_from:i.firstSeen?i.firstSeen+"T00:00:00Z":c.created+"T00:00:00Z",confidence:i.confidence==='High'?85:i.confidence==='Medium'?50:15})),
+        ...ttps.map(t=>({type:"attack-pattern",id:"attack-pattern--"+t.id,name:t.techName||t.techId,
+          external_references:[{source_name:"mitre-attack",external_id:t.techId}]})),
+        ...malware.map(m=>({type:"malware",id:"malware--"+m.id,name:m.family,is_family:true,malware_types:[m.type.toLowerCase()]})),
+      ]
+    };
+    el.textContent = JSON.stringify(stix, null, 2);
+    return;
+  }
+
+  // Markdown / Text
+  let report = `# Intelligence Report: ${c.name}\n`;
+  report += `**Date:** ${new Date().toISOString().split('T')[0]}  \n`;
+  report += `**Status:** ${c.status} | **Priority:** ${c.priority}  \n`;
+  report += `**Suspected Actor:** ${c.actor||'Unknown'}  \n`;
+  report += `**Target Sector:** ${c.sector||'Unknown'}  \n\n`;
+  report += `## Executive Summary\n${c.desc||'No description provided.'}\n\n`;
+
+  // Diamond Model
+  report += `## Diamond Model Analysis\n`;
+  ['adversary','capability','infrastructure','victim'].forEach(v => {
+    if(c.diamond[v]?.desc){
+      report += `### ${v.charAt(0).toUpperCase()+v.slice(1)}\n${c.diamond[v].desc}\n`;
+      if(c.diamond[v].items?.length) report += c.diamond[v].items.map(i=>'- '+i).join('\n')+'\n';
+      report += '\n';
+    }
+  });
+
+  if(ttps.length){
+    report += `## MITRE ATT&CK Mapping\n`;
+    report += `| Tactic | Technique | Details | Confidence |\n|---|---|---|---|\n`;
+    ttps.forEach(t => report += `| ${t.tactic} | ${t.techId} ${t.techName} | ${(t.details||'').substring(0,60)} | ${t.confidence} |\n`);
+    report += '\n';
+  }
+
+  if(iocs.length){
+    report += `## Indicators of Compromise\n`;
+    report += `| Type | Value | Source | Confidence |\n|---|---|---|---|\n`;
+    iocs.forEach(i => report += `| ${i.type} | \`${i.value}\` | ${i.source||''} | ${i.confidence} |\n`);
+    report += '\n';
+  }
+
+  if(infra.length){
+    report += `## Infrastructure\n`;
+    report += `| Type | Address | Location | ASN | Active |\n|---|---|---|---|---|\n`;
+    infra.forEach(i => report += `| ${i.type} | \`${i.addr}\` | ${i.geo||''} | ${i.asn||''} | ${i.firstSeen||'?'} → ${i.lastSeen||'?'} |\n`);
+    report += '\n';
+  }
+
+  if(malware.length){
+    report += `## Malware Samples\n`;
+    malware.forEach(m => {
+      report += `### ${m.family} (${m.type})\n`;
+      report += `- **Platform:** ${m.platform}\n`;
+      if(m.hash) report += `- **SHA256:** \`${m.hash}\`\n`;
+      if(m.c2) report += `- **C2:** ${m.c2}\n`;
+      if(m.notes) report += `- **Notes:** ${m.notes}\n`;
+      if(m.yara) report += `\`\`\`yara\n${m.yara}\n\`\`\`\n`;
+      report += '\n';
+    });
+  }
+
+  // Attribution
+  const totalEvidence = iocs.length + ttps.length + infra.length + malware.length;
+  report += `## Attribution Assessment\n`;
+  report += `**Suspected Actor:** ${c.actor||'Unknown'}  \n`;
+  report += `**Total Evidence:** ${totalEvidence} items across ${[iocs.length?1:0,ttps.length?1:0,infra.length?1:0,malware.length?1:0].reduce((a,b)=>a+b,0)} categories  \n`;
+  report += `**Assessment:** Further analysis required for confident attribution.  \n\n`;
+  report += `---\n*Generated by APT Investigation Tracker*\n`;
+
+  el.textContent = report;
+}
+
+function copyReport(){
+  const text = document.getElementById('report-output').textContent;
+  navigator.clipboard.writeText(text).then(()=>alert('Copied to clipboard'));
+}
+
+// =================== EXPORT/IMPORT ===================
+function exportData(){
+  const blob = new Blob([JSON.stringify(DB,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'apt-tracker-export-'+new Date().toISOString().split('T')[0]+'.json';
+  a.click();
+}
+
+function importData(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if(data.cases) DB = data;
+      save();
+      alert('Import successful');
+      refreshView('dashboard');
+    } catch(err){ alert('Invalid file format'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// =================== UTILS ===================
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// Initialize
+refreshView('dashboard');
+</script>
+</body>
+</html>

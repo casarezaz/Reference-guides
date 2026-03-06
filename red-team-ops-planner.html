@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Red Team Operations Planner</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--s1:#111118;--s2:#1a1a24;--s3:#24243a;--bd:#2e2e4a;--t1:#d0d0e8;--t2:#7878a0;--ac:#ff3e3e;--ac2:#ff6b6b;--grn:#00ff88;--blue:#4488ff;--pur:#aa66ff;--cyn:#00ddff;--org:#ff8800;--yel:#ffdd00;--pink:#ff44aa}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+.app{display:flex;height:100vh}
+.nav{width:200px;background:var(--s1);border-right:1px solid var(--bd);overflow-y:auto;flex-shrink:0}
+.nav-hdr{padding:14px 16px;border-bottom:1px solid var(--bd);font-size:13px;font-weight:700;color:var(--ac)}
+.nav-lbl{font-size:9px;text-transform:uppercase;letter-spacing:1.5px;color:var(--t2);padding:12px 16px 4px}
+.ni{padding:6px 16px;cursor:pointer;font-size:11px;color:var(--t2);transition:all .12s;border-left:2px solid transparent}
+.ni:hover{background:var(--s2);color:var(--t1)}
+.ni.a{color:var(--ac);border-left-color:var(--ac);background:rgba(255,62,62,.05)}
+.main{flex:1;overflow-y:auto;padding:20px}
+.main h2{font-size:16px;font-weight:700;margin-bottom:16px;color:var(--ac)}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:8px;padding:16px;margin-bottom:12px}
+.card h3{font-size:13px;margin-bottom:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--bd)}
+th{color:var(--t2);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.ch{background:var(--s2);border:1px solid var(--bd);border-radius:6px;padding:10px;margin:4px 0;font-size:11px;line-height:1.6}
+.ch h4{font-size:10px;color:var(--ac);margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.cmd{background:var(--bg);padding:1px 4px;border-radius:2px;font-size:10px;color:var(--cyn);font-family:'SF Mono',monospace}
+.code{background:var(--bg);border:1px solid var(--bd);border-radius:4px;padding:10px;font-family:'SF Mono',monospace;font-size:10px;line-height:1.7;overflow-x:auto;white-space:pre;margin:6px 0}
+.tag{display:inline-block;padding:1px 6px;border-radius:3px;font-size:9px;margin:1px}
+.t-red{background:rgba(255,62,62,.12);color:var(--ac)}
+.t-org{background:rgba(255,136,0,.12);color:var(--org)}
+.t-grn{background:rgba(0,255,136,.12);color:var(--grn)}
+.t-blue{background:rgba(68,136,255,.12);color:var(--blue)}
+.t-pur{background:rgba(170,102,255,.12);color:var(--pur)}
+.t-cyn{background:rgba(0,221,255,.12);color:var(--cyn)}
+.phase{display:flex;gap:4px;margin-bottom:16px;overflow-x:auto;padding:4px 0}
+.phase-step{flex:1;min-width:110px;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:10px;text-align:center;transition:all .15s}
+.phase-step h5{font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.phase-step .num{font-size:20px;font-weight:700}
+.flow-arrow{display:flex;align-items:center;color:var(--t2);flex-shrink:0}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="nav">
+  <div class="nav-hdr">Red Team Ops</div>
+  <div class="nav-lbl">Planning</div>
+  <div class="ni a" onclick="show('engagement')">Engagement Planning</div>
+  <div class="ni" onclick="show('recon')">Recon & OSINT</div>
+  <div class="ni" onclick="show('infrastructure')">Infrastructure Setup</div>
+  <div class="nav-lbl">Execution</div>
+  <div class="ni" onclick="show('initial')">Initial Access Tradecraft</div>
+  <div class="ni" onclick="show('evasion')">Evasion & OPSEC</div>
+  <div class="ni" onclick="show('c2')">C2 Architecture</div>
+  <div class="ni" onclick="show('lateral')">Lateral & Escalation</div>
+  <div class="ni" onclick="show('payloads')">Payload Engineering</div>
+  <div class="nav-lbl">Post-Op</div>
+  <div class="ni" onclick="show('reporting')">Reporting & Debrief</div>
+  <div class="ni" onclick="show('purple')">Purple Team Integration</div>
+</div>
+<div class="main" id="content"></div>
+</div>
+<script>
+const S={
+engagement:`<h2>Engagement Planning</h2>
+<div class="card"><h3>Red Team Engagement Lifecycle</h3>
+<div class="phase">
+${['Scoping','Recon','Infrastructure','Weaponize','Deliver','Exploit','Post-Exploit','Report'].map((p,i)=>`${i>0?'<div class="flow-arrow">\u2192</div>':''}<div class="phase-step"><div class="num" style="color:var(--ac)">${i+1}</div><h5>${p}</h5></div>`).join('')}
+</div></div>
+<div class="card"><h3>Engagement Types</h3>
+<table>
+<tr><th>Type</th><th>Scope</th><th>Duration</th><th>Objective</th></tr>
+<tr><td style="color:var(--ac)">Full Red Team</td><td>Entire organization</td><td>4-12 weeks</td><td>Simulate real-world APT, test full detection and response</td></tr>
+<tr><td style="color:var(--org)">Assumed Breach</td><td>Internal network (start inside)</td><td>2-4 weeks</td><td>Test detection from initial foothold onward</td></tr>
+<tr><td style="color:var(--blue)">Objective-Based</td><td>Specific targets (crown jewels)</td><td>2-6 weeks</td><td>Can we reach the CEO's email? Exfil customer DB?</td></tr>
+<tr><td style="color:var(--pur)">Purple Team</td><td>Collaborative with defenders</td><td>1-2 weeks</td><td>Test specific detection capabilities, tune alerts</td></tr>
+<tr><td style="color:var(--cyn)">Adversary Simulation</td><td>Emulate specific threat actor</td><td>2-8 weeks</td><td>Test defenses against APT28, Lazarus, etc.</td></tr>
+</table></div>
+<div class="card"><h3>Rules of Engagement Template</h3>
+<div class="grid2">
+<div class="ch"><h4>Must Define</h4>Scope boundaries (IP ranges, domains, cloud tenants)<br>Out-of-scope systems (production databases, safety-critical)<br>Authorized techniques (physical, social engineering, cloud)<br>Communication plan (emergency contacts, deconfliction)<br>Data handling (PII rules, exfiltration limits)<br>Legal authorization (signed agreement)</div>
+<div class="ch"><h4>Operational Controls</h4>Kill switch procedures (immediate stop)<br>Hours of operation (business hours only?)<br>Notification thresholds (if real incident found)<br>Evidence preservation requirements<br>Clean-up obligations (remove implants, credentials)<br>Third-party boundaries (cloud providers, partners)</div>
+</div></div>`,
+
+recon:`<h2>Reconnaissance & OSINT</h2>
+<div class="card"><h3>OSINT Collection Framework</h3>
+<table>
+<tr><th>Category</th><th>Sources</th><th>Tools</th></tr>
+<tr><td>Domain/Infrastructure</td><td>DNS, WHOIS, SSL certs, ASN</td><td><span class="cmd">amass</span>, <span class="cmd">subfinder</span>, <span class="cmd">dnsx</span>, <span class="cmd">crt.sh</span></td></tr>
+<tr><td>Email & Identity</td><td>LinkedIn, GitHub, breach databases</td><td><span class="cmd">theHarvester</span>, <span class="cmd">hunter.io</span>, <span class="cmd">LinkedIn scraping</span></td></tr>
+<tr><td>Technology Stack</td><td>HTTP headers, JavaScript, error pages</td><td><span class="cmd">Wappalyzer</span>, <span class="cmd">httpx</span>, <span class="cmd">nuclei</span></td></tr>
+<tr><td>Cloud Resources</td><td>Storage buckets, CDN, DNS records</td><td><span class="cmd">cloud_enum</span>, <span class="cmd">MicroBurst</span>, <span class="cmd">S3Scanner</span></td></tr>
+<tr><td>Code & Secrets</td><td>GitHub, GitLab, Pastebin</td><td><span class="cmd">truffleHog</span>, <span class="cmd">GitDorker</span>, <span class="cmd">gitleaks</span></td></tr>
+<tr><td>Social Media</td><td>Twitter, LinkedIn, job postings</td><td>Manual OSINT, technology clues in job posts</td></tr>
+</table></div>
+<div class="card"><h3>Active Recon Workflow</h3>
+<div class="ch"><h4>1. Subdomain Enumeration</h4><span class="cmd">amass enum -d target.com -active</span><br><span class="cmd">subfinder -d target.com -all | httpx -title -tech-detect -status-code</span></div>
+<div class="ch"><h4>2. Service Discovery</h4><span class="cmd">nmap -sV -sC -p- --min-rate 1000 target.com</span><br><span class="cmd">masscan -p1-65535 --rate 10000 target.com</span></div>
+<div class="ch"><h4>3. Vulnerability Scanning</h4><span class="cmd">nuclei -u target.com -t cves/ -severity critical,high</span><br><span class="cmd">nikto -h target.com</span></div>
+<div class="ch"><h4>4. Cloud Enumeration</h4><span class="cmd">cloud_enum -k target -k targetcorp</span><br>Check: <span class="cmd">{target}.blob.core.windows.net</span>, <span class="cmd">{target}.s3.amazonaws.com</span></div>
+</div>`,
+
+infrastructure:`<h2>Red Team Infrastructure</h2>
+<div class="card"><h3>C2 Infrastructure Architecture</h3>
+<div class="code"><span style="color:var(--t2)">// Layered C2 Architecture</span>
+
+<span style="color:var(--ac)">Operator</span> \u2192 <span style="color:var(--pur)">VPN/Tor</span> \u2192 <span style="color:var(--blue)">Team Server</span>
+                                   |
+                     <span style="color:var(--org)">Redirectors (nginx/Apache)</span>
+                    /              |              \\
+          <span style="color:var(--cyn)">HTTPS Redir</span>    <span style="color:var(--cyn)">DNS Redir</span>    <span style="color:var(--cyn)">SMB Redir</span>
+                |              |              |
+         <span style="color:var(--grn)">CDN/Domain Front</span>  <span style="color:var(--grn)">DNS Server</span>    <span style="color:var(--grn)">Direct</span>
+                |              |              |
+          <span style="color:var(--yel)">[Target Network / Implants]</span></div></div>
+<div class="card"><h3>Infrastructure Components</h3>
+<div class="grid2">
+<div class="ch"><h4>Redirectors</h4>Purpose: Filter non-C2 traffic, hide team server<br>
+<span class="cmd">socat</span> - Simple TCP redirect<br>
+<span class="cmd">nginx</span> - HTTP/S redirect with filtering<br>
+<span class="cmd">Apache mod_rewrite</span> - URI-based filtering<br>
+Categorize domains (health, business) for reputation</div>
+<div class="ch"><h4>Domain & Certificate Setup</h4>Aged domains (6+ months, good reputation)<br>
+Categorized domains (Bluecoat, TrendMicro)<br>
+Let's Encrypt or purchased SSL certs<br>
+Match target industry for domain names<br>
+Multiple domains per engagement (burn plan)</div>
+<div class="ch"><h4>OPSEC Considerations</h4>Separate infrastructure per operation<br>
+Dedicated VPS providers (no corporate billing)<br>
+VPN/proxy chains for all management<br>
+Automated infrastructure teardown<br>
+No cross-contamination between engagements</div>
+<div class="ch"><h4>Automation & IaC</h4><span class="cmd">Terraform</span> for cloud provisioning<br>
+<span class="cmd">Ansible</span> for server configuration<br>
+<span class="cmd">Red Team Infra</span> frameworks (RedWarden, etc.)<br>
+Automated SSL deployment<br>
+Infrastructure as code for reproducibility</div>
+</div></div>`,
+
+initial:`<h2>Initial Access Tradecraft</h2>
+<div class="card"><h3>Initial Access Techniques</h3>
+<table>
+<tr><th>Vector</th><th>Technique</th><th>Success Rate</th><th>Detection Risk</th></tr>
+<tr><td rowspan="3">Phishing</td><td>Macro-enabled documents (VBA)</td><td>Medium (declining)</td><td>High (well-detected)</td></tr>
+<tr><td>HTML smuggling + ISO/IMG + LNK</td><td>High</td><td>Medium</td></tr>
+<tr><td>QR code phishing (quishing)</td><td>Medium-High</td><td>Low (newer)</td></tr>
+<tr><td rowspan="2">Web Exploitation</td><td>SSRF/RCE on public apps</td><td>Varies</td><td>Medium (WAF dependent)</td></tr>
+<tr><td>Supply chain (dependencies, plugins)</td><td>Low (hard) but high impact</td><td>Low</td></tr>
+<tr><td rowspan="2">Credential-Based</td><td>Password spraying (Azure AD/O365)</td><td>Medium</td><td>Medium (lockout detection)</td></tr>
+<tr><td>Stolen credentials (dark web, phishing)</td><td>High</td><td>Low-Medium</td></tr>
+<tr><td rowspan="2">Physical</td><td>USB drop / HID attacks</td><td>Medium</td><td>Low</td></tr>
+<tr><td>Rogue wireless / evil twin</td><td>Medium</td><td>Low</td></tr>
+</table></div>
+<div class="card"><h3>Modern Payload Delivery Chain</h3>
+<div class="code"><span style="color:var(--t2)">// Post-macro era delivery (2024+)</span>
+
+<span style="color:var(--ac)">Email</span> \u2192 <span style="color:var(--org)">HTML Smuggling</span> \u2192 <span style="color:var(--yel)">.ISO/.IMG Container</span>
+                                        |
+                                  <span style="color:var(--cyn)">.LNK shortcut</span>
+                                        |
+                              <span style="color:var(--pur)">LOLBin execution</span>
+                         (mshta, rundll32, regsvr32)
+                                        |
+                              <span style="color:var(--grn)">Shellcode loader</span>
+                                        |
+                               <span style="color:var(--ac)">C2 Beacon</span></div></div>`,
+
+evasion:`<h2>Evasion & OPSEC</h2>
+<div class="card"><h3>EDR Evasion Techniques</h3>
+<table>
+<tr><th>Technique</th><th>What It Bypasses</th><th>Complexity</th></tr>
+<tr><td>Direct Syscalls (SysWhispers, HellsGate)</td><td>Usermode API hooks (ntdll.dll)</td><td>Medium</td></tr>
+<tr><td>Unhooking (fresh ntdll copy)</td><td>EDR inline hooks</td><td>Medium</td></tr>
+<tr><td>AMSI Bypass (memory patch)</td><td>Script-based detection (PowerShell)</td><td>Low</td></tr>
+<tr><td>ETW Patching</td><td>Event Tracing for Windows telemetry</td><td>Medium</td></tr>
+<tr><td>Sleep obfuscation (Ekko, Foliage)</td><td>Memory scanning during sleep</td><td>High</td></tr>
+<tr><td>Module stomping / DLL hollowing</td><td>In-memory detection of injected code</td><td>High</td></tr>
+<tr><td>Indirect syscalls</td><td>Stack-based return address detection</td><td>High</td></tr>
+<tr><td>Hardware breakpoint hooks</td><td>Alternative to inline hooks for evasion</td><td>High</td></tr>
+<tr><td>Callback-based execution</td><td>CreateRemoteThread detection</td><td>Medium</td></tr>
+<tr><td>PPL abuse / driver exploits</td><td>Protected process restrictions</td><td>Very High</td></tr>
+</table></div>
+<div class="card"><h3>Operational Security Checklist</h3>
+<div class="grid2">
+<div class="ch"><h4>Network OPSEC</h4>Encrypted C2 channels only<br>Domain fronting or legitimate CDN<br>Malleable C2 profiles mimicking real traffic<br>Jitter on beacon callbacks (30-50%)<br>Kill dates on all implants<br>No direct connections to team server</div>
+<div class="ch"><h4>Host OPSEC</h4>Timestomp all dropped files<br>In-memory only execution where possible<br>Clean up event logs selectively<br>Avoid touching disk (fileless techniques)<br>Use legitimate process names/paths<br>Match parent-child process relationships</div>
+<div class="ch"><h4>Identity OPSEC</h4>Use existing user accounts when possible<br>Blend with normal user behavior patterns<br>Operate during business hours<br>Match geographic login patterns<br>Avoid mass enumeration (low and slow)<br>Use separate credentials per system</div>
+<div class="ch"><h4>Tool OPSEC</h4>Custom-compiled tools (no default sigs)<br>Unique implant per target (no shared IOCs)<br>Modify known tool signatures<br>Test payloads against target AV/EDR first<br>No default Cobalt Strike configs<br>Rotate infrastructure regularly</div>
+</div></div>`,
+
+c2:`<h2>C2 Architecture & Frameworks</h2>
+<div class="card"><h3>C2 Framework Comparison</h3>
+<table>
+<tr><th>Framework</th><th>Language</th><th>License</th><th>Strengths</th><th>Weaknesses</th></tr>
+<tr><td style="color:var(--ac)">Cobalt Strike</td><td>Java</td><td>Commercial ($)</td><td>Malleable C2, mature, extensible via BOFs</td><td>Heavily signatured, expensive, cracked versions everywhere</td></tr>
+<tr><td style="color:var(--grn)">Sliver</td><td>Go</td><td>Open Source</td><td>Multi-protocol, implant polymorphism, active dev</td><td>Growing detection signatures</td></tr>
+<tr><td style="color:var(--pur)">Mythic</td><td>Python/Go</td><td>Open Source</td><td>Modular agents, great UI, multi-language agents</td><td>Complex setup, newer</td></tr>
+<tr><td style="color:var(--blue)">Havoc</td><td>C/C++</td><td>Open Source</td><td>Modern C2, good evasion, active development</td><td>Less mature ecosystem</td></tr>
+<tr><td style="color:var(--cyn)">Brute Ratel</td><td>C</td><td>Commercial ($)</td><td>Advanced evasion, syscalls, sleep masking</td><td>Cracked version leaked, now well-detected</td></tr>
+<tr><td style="color:var(--org)">Nighthawk</td><td>C</td><td>Commercial ($$$)</td><td>Advanced tradecraft, minimal footprint</td><td>Very expensive, restricted access</td></tr>
+</table></div>
+<div class="card"><h3>C2 Channel Options</h3>
+<div class="grid3">
+<div class="ch"><h4>HTTPS (Most Common)</h4>Blends with normal web traffic<br>SSL/TLS encryption<br>Domain fronting capable<br>Malleable profiles for customization<br>Proxy-aware</div>
+<div class="ch"><h4>DNS</h4>Bypasses most network controls<br>Low bandwidth (~40 KB/s)<br>TXT, CNAME, A record encoding<br>Hard to block without breaking DNS<br>Good for data exfil</div>
+<div class="ch"><h4>SMB Named Pipes</h4>No external network required<br>Internal pivoting only<br>P2P mesh between implants<br>Blends with Windows traffic<br>Good for segmented networks</div>
+</div></div>`,
+
+lateral:`<h2>Lateral Movement & Privilege Escalation</h2>
+<div class="card"><h3>Windows Lateral Movement Techniques</h3>
+<table>
+<tr><th>Technique</th><th>Requires</th><th>Stealth</th><th>Detection</th></tr>
+<tr><td>PsExec / SMB Exec</td><td>Admin + SMB access</td><td>Low</td><td>Service creation events, named pipe</td></tr>
+<tr><td>WMI Exec</td><td>Admin + WMI access</td><td>Medium</td><td>WMI event subscription, process creation</td></tr>
+<tr><td>WinRM / PSRemoting</td><td>Admin + WinRM enabled</td><td>Medium</td><td>WSMan connections, PowerShell logging</td></tr>
+<tr><td>DCOM</td><td>Admin + DCOM access</td><td>High</td><td>Unusual DCOM object activation</td></tr>
+<tr><td>RDP</td><td>RDP access + credentials</td><td>Medium</td><td>Logon type 10, network logon</td></tr>
+<tr><td>SSH (lateral to Linux)</td><td>SSH credentials/keys</td><td>Medium</td><td>SSH auth logs</td></tr>
+<tr><td>Pass-the-Hash (PTH)</td><td>NTLM hash</td><td>Medium</td><td>Logon type 9 (NewCredentials), NTLM usage</td></tr>
+<tr><td>Overpass-the-Hash</td><td>NTLM hash \u2192 TGT</td><td>High</td><td>RC4 TGT request (should be AES)</td></tr>
+<tr><td>Token Impersonation</td><td>Local admin + target token</td><td>High</td><td>Unusual token creation events</td></tr>
+</table></div>
+<div class="card"><h3>Privilege Escalation Decision Tree</h3>
+<div class="ch"><h4>Check Order (Windows)</h4>
+1. Missing patches \u2192 Kernel exploits (check with <span class="cmd">watson</span>, <span class="cmd">winPEAS</span>)<br>
+2. Service misconfigurations \u2192 Unquoted paths, weak service perms, DLL hijacking<br>
+3. Scheduled tasks \u2192 Writable task files, PATH hijacking<br>
+4. AlwaysInstallElevated \u2192 MSI-based escalation<br>
+5. Stored credentials \u2192 Credential Manager, AutoLogon, SAM backup<br>
+6. Token abuse \u2192 SeImpersonate/SeAssignPrimaryToken (Potato attacks)<br>
+7. AD-based \u2192 Kerberoasting, delegation abuse, GPO modification</div>
+</div>`,
+
+payloads:`<h2>Payload Engineering</h2>
+<div class="card"><h3>Modern Payload Techniques</h3>
+<div class="grid2">
+<div class="ch"><h4>Loader Architecture</h4>
+<span style="color:var(--pink)">Stage 0:</span> Initial dropper (LNK, HTA, macro)<br>
+<span style="color:var(--org)">Stage 1:</span> Shellcode loader (C/Rust/Go)<br>
+<span style="color:var(--yel)">Stage 2:</span> Reflective loader / beacon<br>
+<span style="color:var(--grn)">Stage 3:</span> Post-exploitation modules (BOFs)<br><br>
+Each stage independently encrypted, each stage validates environment before proceeding</div>
+<div class="ch"><h4>Evasion-First Design</h4>
+Compile-time: String encryption, API hashing<br>
+Link-time: Minimal imports, custom CRT<br>
+Runtime: Direct syscalls, unhooking<br>
+Memory: Sleep encryption, guard pages<br>
+Network: Encrypted C2, legitimate traffic patterns<br>
+Behavioral: Delayed execution, sandbox checks</div>
+</div></div>
+<div class="card"><h3>Beacon Object Files (BOFs)</h3>
+<div class="ch"><h4>Why BOFs?</h4>
+Execute in beacon's process (no fork & run)<br>
+No additional process creation (OPSEC)<br>
+Small, single-purpose, position-independent code<br>
+Direct access to Beacon API<br>
+Compiled C code, not PowerShell (less detected)<br><br>
+Key BOF collections: <span class="cmd">TrustedSec SA</span>, <span class="cmd">Cobalt Strike Community Kit</span>, <span class="cmd">BOF.NET</span></div></div>`,
+
+reporting:`<h2>Reporting & Debrief</h2>
+<div class="card"><h3>Red Team Report Structure</h3>
+<div class="ch"><h4>1. Executive Summary</h4>Business impact narrative. What could a real attacker do?<br>Key findings in business terms. Risk ratings. Recommendations.</div>
+<div class="ch"><h4>2. Attack Narrative</h4>Chronological story of the engagement. Timeline with screenshots.<br>Decision points, pivots, and tradecraft used.</div>
+<div class="ch"><h4>3. Technical Findings</h4>Each finding: Description, Evidence, Impact, Remediation, ATT&CK mapping.<br>Ranked by severity with clear remediation steps.</div>
+<div class="ch"><h4>4. Detection Gaps</h4>What the blue team missed. Where alerts should have fired.<br>Specific detection recommendations per gap.</div>
+<div class="ch"><h4>5. IOC Appendix</h4>All IOCs used: domains, IPs, hashes, tools, accounts created.<br>Clean-up verification checklist.</div></div>`,
+
+purple:`<h2>Purple Team Integration</h2>
+<div class="card"><h3>Purple Team Methodology</h3>
+<table>
+<tr><th>Phase</th><th>Red Team Action</th><th>Blue Team Action</th><th>Outcome</th></tr>
+<tr><td>Plan</td><td>Select TTPs to test</td><td>Review current detection for those TTPs</td><td>Test plan with expected detections</td></tr>
+<tr><td>Execute</td><td>Perform technique in controlled manner</td><td>Monitor in real-time, check alerts</td><td>Did detection fire? Correct alert?</td></tr>
+<tr><td>Analyze</td><td>Share exact TTPs and timing</td><td>Correlate with telemetry and logs</td><td>Gap analysis: what was missed and why</td></tr>
+<tr><td>Improve</td><td>Suggest evasion variants</td><td>Build/tune detection rules</td><td>New detections, improved coverage</td></tr>
+<tr><td>Validate</td><td>Re-test with evasion</td><td>Verify new detection catches variant</td><td>Confirmed detection improvement</td></tr>
+</table></div>
+<div class="card"><h3>ATT&CK-Based Coverage Mapping</h3>
+<div class="ch"><h4>Detection Coverage Assessment</h4>
+For each ATT&CK technique:<br>
+<span style="color:var(--grn)">GREEN</span> = Real-time automated detection with high fidelity<br>
+<span style="color:var(--yel)">YELLOW</span> = Partial detection (logging exists, manual hunting required)<br>
+<span style="color:var(--org)">ORANGE</span> = Data source available but no detection rule<br>
+<span style="color:var(--ac)">RED</span> = No visibility (no data source, no detection)<br><br>
+Priority: Fill RED gaps for most commonly used techniques first. Use MITRE ATT&CK Navigator for heatmap visualization.</div></div>`
+};
+
+function show(id){
+  document.getElementById('content').innerHTML=S[id]||'';
+  document.querySelectorAll('.ni').forEach(n=>n.classList.remove('a'));
+  if(event&&event.target)event.target.classList.add('a');
+}
+document.getElementById('content').innerHTML=S.engagement;
+</script>
+</body>
+</html>

@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security R&D Interview Prep Engine</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0d14;--s1:#111827;--s2:#1f2937;--s3:#374151;--bd:#4b5563;--t1:#f3f4f6;--t2:#9ca3af;--ac:#8b5cf6;--ac2:#a78bfa;--red:#f87171;--org:#fb923c;--yel:#fbbf24;--grn:#34d399;--blue:#60a5fa;--cyn:#22d3ee}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh}
+.app{max-width:900px;margin:0 auto;padding:20px}
+.header{text-align:center;margin-bottom:24px;padding:20px}
+.header h1{font-size:22px;font-weight:700;margin-bottom:4px}
+.header h1 span{color:var(--ac)}
+.header p{color:var(--t2);font-size:13px}
+.mode-selector{display:flex;gap:8px;justify-content:center;margin-bottom:24px}
+.mode-btn{padding:10px 20px;border-radius:8px;cursor:pointer;font-size:13px;background:var(--s1);border:1px solid var(--bd);color:var(--t2);transition:all .15s}
+.mode-btn:hover{background:var(--s2);color:var(--t1)}
+.mode-btn.active{background:var(--ac);border-color:var(--ac);color:#fff}
+.card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:20px;margin-bottom:16px}
+.card h3{font-size:15px;margin-bottom:12px}
+.btn{padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;border:1px solid var(--bd);background:var(--s2);color:var(--t1);transition:all .15s}
+.btn:hover{background:var(--s3)}
+.btn-p{background:var(--ac);border-color:var(--ac);color:#fff}.btn-p:hover{background:#7c3aed}
+.btn-g{background:rgba(52,211,153,.15);border-color:var(--grn);color:var(--grn)}.btn-g:hover{background:rgba(52,211,153,.25)}
+.timer{font-size:36px;font-weight:700;text-align:center;padding:12px;font-family:monospace}
+.timer.warning{color:var(--org)}
+.timer.danger{color:var(--red)}
+.progress-bar{height:6px;background:var(--s2);border-radius:3px;margin:12px 0;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:width .3s}
+.scenario-text{font-size:14px;line-height:1.8;color:var(--t1);margin-bottom:16px;padding:16px;background:var(--s2);border-radius:8px;border-left:3px solid var(--ac)}
+.rubric{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.rubric-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;padding:8px;background:var(--s2);border-radius:6px;cursor:pointer;transition:all .15s}
+.rubric-item:hover{background:var(--s3)}
+.rubric-item.checked{background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3)}
+.rubric-check{width:18px;height:18px;border-radius:4px;border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.rubric-item.checked .rubric-check{background:var(--grn);border-color:var(--grn);color:#000}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;margin:2px}
+.t-ac{background:rgba(139,92,246,.12);color:var(--ac2)}
+.t-blue{background:rgba(96,165,250,.12);color:var(--blue)}
+.t-cyn{background:rgba(34,211,238,.12);color:var(--cyn)}
+.t-red{background:rgba(248,113,113,.12);color:var(--red)}
+.score-display{text-align:center;padding:24px}
+.score-display .big{font-size:48px;font-weight:700}
+.score-display .label{color:var(--t2);font-size:13px;margin-top:4px}
+textarea{width:100%;background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;color:var(--t1);font-size:13px;font-family:inherit;resize:vertical;min-height:120px;outline:none}
+textarea:focus{border-color:var(--ac)}
+.hint-box{background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:12px;margin-top:12px;font-size:12px;color:var(--ac2);display:none}
+.hint-box.show{display:block}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.stat-box{background:var(--s2);border-radius:8px;padding:12px;text-align:center}
+.stat-box .num{font-size:22px;font-weight:700}
+.stat-box .lbl{font-size:10px;color:var(--t2);text-transform:uppercase;margin-top:4px}
+.category-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.cat-card{background:var(--s2);border:1px solid var(--bd);border-radius:8px;padding:12px;cursor:pointer;transition:all .15s;text-align:center}
+.cat-card:hover{border-color:var(--ac)}
+.cat-card.active{border-color:var(--ac);background:rgba(139,92,246,.1)}
+.cat-card h4{font-size:12px;margin-bottom:4px}
+.cat-card p{font-size:10px;color:var(--t2)}
+.history-item{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--s2);border-radius:6px;margin-bottom:4px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+const CATEGORIES = {
+  'threat-modeling': {name:'Threat Modeling',icon:'TM',scenarios:[
+    {q:'You are given a new Azure-based microservices architecture with an API gateway, Kubernetes cluster, managed database, and blob storage. The system processes healthcare data (HIPAA regulated). Walk me through your threat modeling approach.',time:600,rubric:['Identifies trust boundaries (public internet, API gateway, service mesh, database layer)','Applies STRIDE to each component systematically','Identifies data flow risks (PHI in transit, at rest, in processing)','Considers authentication and authorization at each boundary','Addresses compliance requirements (HIPAA BAA, encryption requirements)','Proposes specific mitigations prioritized by risk','Considers Kubernetes-specific threats (container escape, RBAC, secrets management)','Discusses monitoring and detection strategy'],hint:'Think about data flows first. Where does PHI enter, get processed, get stored? Apply STRIDE at each trust boundary crossing. Consider both cloud-native and traditional threat vectors.'},
+    {q:'A development team wants to add a third-party AI/ML model to their product that processes customer data. How would you threat model this integration?',time:480,rubric:['Identifies AI-specific threats (adversarial inputs, data poisoning, model theft)','Considers data privacy implications (training data leakage, inference attacks)','Maps supply chain risks (model provenance, dependency vulnerabilities)','Evaluates trust boundary between application and ML model','Addresses prompt injection if LLM-based','Considers output validation and hallucination risks','Proposes monitoring for model drift and anomalous behavior','Discusses regulatory implications (EU AI Act, data residency)'],hint:'Combine traditional STRIDE with AI-specific threats from MITRE ATLAS. Consider both the model itself and the pipeline around it.'},
+    {q:'Your organization is migrating from on-premises Active Directory to a hybrid Azure AD setup. What are the critical threats you would model?',time:480,rubric:['Identifies Azure AD Connect as critical attack surface','Considers Golden SAML and federation abuse scenarios','Maps credential synchronization risks (PHS, PTA, ADFS)','Addresses conditional access policy gaps during migration','Identifies hybrid identity attack paths (on-prem to cloud pivot)','Considers legacy protocol risks (NTLM, Kerberos delegation)','Proposes phased security controls aligned with migration stages','Discusses monitoring for both on-prem and cloud during transition'],hint:'The hybrid identity layer is the critical attack surface. Think about how an on-prem compromise can cascade to the cloud and vice versa.'}
+  ]},
+  'incident-analysis': {name:'Attack Analysis',icon:'AA',scenarios:[
+    {q:'You receive an alert: a service account in your Azure environment has made API calls to enumerate all storage accounts and download large volumes of blob data at 3 AM. The service account is assigned to a production VM. Walk me through your analysis.',time:600,rubric:['Determines if activity is legitimate (scheduled backup, CI/CD pipeline)','Checks for initial access indicators (VM compromise, credential theft)','Analyzes IMDS access patterns on the source VM','Investigates scope of access (what was downloaded, from which accounts)','Checks for lateral movement indicators','Examines network traffic for data exfiltration','Proposes containment steps (rotate credentials, isolate VM, revoke tokens)','Develops detection rules to prevent recurrence'],hint:'Start with determining legitimacy, then work backwards from the alert to find the initial access vector. Consider the managed identity attack chain.'},
+    {q:'A user reports receiving MFA prompts they did not initiate. Investigation shows multiple failed MFA attempts followed by one successful authentication. The user claims they eventually approved one prompt to make them stop. What happened and what do you do?',time:480,rubric:['Identifies MFA fatigue/push bombing attack','Determines credential compromise as prerequisite','Investigates source of authentication attempts (IP, location, device)','Checks for post-authentication lateral movement','Examines what the attacker accessed during the session','Proposes immediate containment (session revocation, password reset, MFA re-enrollment)','Recommends migration to phishing-resistant MFA (FIDO2, number matching)','Develops monitoring for excessive MFA prompt patterns'],hint:'This is a classic MFA fatigue attack. The critical question is: what did the attacker do after the user approved the prompt?'},
+    {q:'Your SIEM fires a high-priority alert: a domain controller is communicating with a known C2 IP address. The traffic is encrypted HTTPS on port 443. How do you investigate and respond?',time:600,rubric:['Assesses blast radius immediately (DC compromise = full domain compromise potential)','Validates the alert (false positive check, threat intel correlation)','Investigates how the DC was compromised (vulnerability, lateral movement, supply chain)','Checks for Kerberos ticket forgery (Golden/Silver tickets)','Examines AD replication for signs of DCSync','Investigates for additional compromised DCs or forest trusts','Proposes containment without disrupting AD services','Plans for krbtgt password rotation and full AD recovery if needed'],hint:'A compromised DC is the worst-case scenario for an enterprise. Think about what an attacker can do with DC-level access and how that affects your investigation scope.'}
+  ]},
+  'cloud-security': {name:'Cloud Security',icon:'CS',scenarios:[
+    {q:'You are designing the security architecture for a new multi-tenant SaaS application running on Azure. Each tenant will have their own data, but the application layer is shared. How do you approach security?',time:600,rubric:['Designs tenant isolation at data layer (separate databases, schemas, or row-level security)','Implements identity isolation (tenant-scoped tokens, claims-based authorization)','Addresses noisy neighbor and resource exhaustion risks','Designs encryption strategy (tenant-specific keys via Azure Key Vault)','Plans network isolation (VNet integration, private endpoints)','Addresses compliance requirements for data residency','Implements monitoring per-tenant for anomaly detection','Considers insider threat from application operators'],hint:'Multi-tenancy security is about ensuring that a compromise of one tenant cannot affect another. Think about isolation at every layer: compute, data, identity, network.'},
+    {q:'An engineering team has deployed a Kubernetes cluster in Azure (AKS) and wants to know what security hardening they need. What do you recommend?',time:480,rubric:['Addresses pod security (security contexts, pod security standards, no root)','Implements network policies for micro-segmentation','Configures RBAC with least privilege for users and service accounts','Addresses image security (scanning, signed images, admission controllers)','Secures secrets management (Azure Key Vault integration, not K8s secrets)','Implements runtime security monitoring (Falco or Defender for Containers)','Addresses API server security (private cluster, authorized IP ranges)','Plans for upgrade and patch management strategy'],hint:'Think about the Kubernetes threat matrix. Security spans the control plane, data plane, nodes, and supply chain.'}
+  ]},
+  'os-internals': {name:'OS Internals',icon:'OS',scenarios:[
+    {q:'Explain how process injection works on Windows. What are the main techniques, why do attackers use them, and how would you detect them?',time:480,rubric:['Explains DLL injection (LoadLibrary, reflective DLL injection)','Covers process hollowing and process doppelganging','Discusses APC injection and thread execution hijacking','Explains why (defense evasion, running in context of trusted process)','Describes detection via API hooking (VirtualAllocEx, WriteProcessMemory, CreateRemoteThread)','Discusses ETW-based detection approaches','Addresses limitations of signature-based detection','Proposes behavioral detection strategies (parent-child process anomalies)'],hint:'Focus on the Windows API calls involved and how each technique differs in its approach to getting code into another process address space.'},
+    {q:'A malware sample is using syscalls directly instead of going through ntdll.dll. Why would it do this, and how would you detect it?',time:420,rubric:['Explains the role of ntdll.dll as the syscall stub layer','Identifies EDR/security tool hooking of ntdll as the motivation','Describes direct syscall techniques (manual syscall IDs, Hell\'s Gate, SysWhispers)','Explains how syscall numbers vary across Windows versions','Discusses detection challenges (no usermode hooks to trigger)','Proposes kernel-level detection (ETW Ti, syscall auditing)','Considers stack-based detection (return address analysis)','Addresses hardware-based detection approaches (Intel PT)'],hint:'Think about the Windows syscall chain: user code -> ntdll.dll stub -> kernel transition. Direct syscalls skip the ntdll layer that security tools typically hook.'}
+  ]},
+  'ai-security': {name:'AI Security',icon:'AI',scenarios:[
+    {q:'You are tasked with red teaming a new enterprise LLM deployment (like Microsoft Copilot). What is your methodology and what specific attacks would you test?',time:600,rubric:['Outlines structured red team methodology (scope, reconnaissance, attack dev, execution)','Tests direct prompt injection (system prompt override, instruction manipulation)','Tests indirect prompt injection (malicious content in grounding documents)','Evaluates data extraction risks (PII leakage, system prompt extraction)','Tests tool/plugin abuse scenarios (unauthorized actions, data exfiltration)','Assesses jailbreaking resistance (safety bypass techniques)','Tests multi-turn manipulation and context window attacks','Proposes ongoing monitoring and feedback loop for continuous improvement'],hint:'Think about the OWASP Top 10 for LLMs. Cover both the model layer attacks and the application layer attacks.'},
+    {q:'How would you design a detection system for adversarial attacks against a production ML model used for malware classification?',time:480,rubric:['Identifies adversarial evasion as primary threat (misclassifying malware as benign)','Proposes input monitoring (entropy analysis, feature distribution shifts)','Designs confidence-based detection (low-confidence predictions as anomalies)','Implements ensemble disagreement detection','Addresses data poisoning detection in training pipeline','Proposes adversarial training as a defense mechanism','Considers model monitoring for drift and degraded performance','Designs alerting and human-in-the-loop for suspicious classifications'],hint:'The key insight is that adversarial examples often look subtly different from natural inputs in ways that can be detected even if the model is fooled.'}
+  ]},
+  'behavioral': {name:'Behavioral',icon:'BQ',scenarios:[
+    {q:'Tell me about a time you identified a security vulnerability or threat that others had missed. What was your approach?',time:300,rubric:['Describes a specific, real situation with context','Explains their unique analytical approach','Shows deep technical understanding of the vulnerability','Demonstrates initiative and persistence','Explains impact and how it was communicated to stakeholders','Shows collaboration with other teams','Describes the resolution and any process improvements','Reflects on what they learned'],hint:'Use the STAR method: Situation, Task, Action, Result. Be specific about the technical details.'},
+    {q:'How do you stay current with the evolving threat landscape? Give me a concrete example of how threat intelligence influenced a security decision you made.',time:300,rubric:['Lists specific threat intelligence sources and communities','Demonstrates active engagement (not just passive consumption)','Gives concrete example linking intel to action','Shows understanding of threat actor motivations and TTPs','Describes how they translate intelligence into defensive improvements','Shows experience with threat intelligence platforms','Demonstrates ability to assess reliability and relevance of intel','Shows how they share knowledge with their team'],hint:'Show that you actively consume, analyze, and operationalize threat intelligence - not just read about it.'}
+  ]}
+};
+
+let state = {
+  mode: 'practice',
+  category: null,
+  currentScenario: null,
+  timer: 0,
+  timerRunning: false,
+  timerInterval: null,
+  showHint: false,
+  checkedRubric: new Set(),
+  notes: '',
+  history: [],
+  totalPracticed: 0,
+  avgScore: 0
+};
+
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <div class="header">
+      <h1><span>Security R&D</span> Interview Prep</h1>
+      <p>Microsoft Threat Intelligence & Security Research Role</p>
+    </div>
+    <div class="mode-selector">
+      <div class="mode-btn ${state.mode==='practice'?'active':''}" onclick="setMode('practice')">Scenario Practice</div>
+      <div class="mode-btn ${state.mode==='timed'?'active':''}" onclick="setMode('timed')">Timed Challenge</div>
+      <div class="mode-btn ${state.mode==='history'?'active':''}" onclick="setMode('history')">Performance</div>
+    </div>
+    ${state.currentScenario ? renderScenario() : renderCategorySelect()}
+  `;
+}
+
+function renderCategorySelect() {
+  if (state.mode === 'history') return renderHistory();
+
+  const cats = Object.entries(CATEGORIES);
+  const totalQ = cats.reduce((a,[,c]) => a + c.scenarios.length, 0);
+
+  return `
+    <div class="stats-grid">
+      <div class="stat-box"><div class="num" style="color:var(--ac)">${totalQ}</div><div class="lbl">Total Scenarios</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--grn)">${state.totalPracticed}</div><div class="lbl">Practiced</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--blue)">${cats.length}</div><div class="lbl">Categories</div></div>
+      <div class="stat-box"><div class="num" style="color:${state.avgScore>=70?'var(--grn)':state.avgScore>=50?'var(--yel)':'var(--t2)'}">${state.avgScore||'--'}%</div><div class="lbl">Avg Score</div></div>
+    </div>
+    <div class="card">
+      <h3>Select Category</h3>
+      <div class="category-grid">
+        ${cats.map(([key, cat]) => `
+          <div class="cat-card" onclick="selectCategory('${key}')">
+            <div style="font-size:20px;font-weight:700;color:var(--ac);margin-bottom:4px">${cat.icon}</div>
+            <h4>${cat.name}</h4>
+            <p>${cat.scenarios.length} scenarios</p>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    ${state.category ? `
+      <div class="card">
+        <h3>${CATEGORIES[state.category].name} Scenarios</h3>
+        ${CATEGORIES[state.category].scenarios.map((s, i) => `
+          <div style="padding:12px;background:var(--s2);border-radius:8px;margin-bottom:8px;cursor:pointer" onclick="startScenario('${state.category}',${i})">
+            <div style="font-size:13px;margin-bottom:4px">${s.q.substring(0,120)}...</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="tag t-ac">${Math.floor(s.time/60)} min</span>
+              <span class="tag t-blue">${s.rubric.length} criteria</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+  `;
+}
+
+function renderScenario() {
+  const s = state.currentScenario;
+  const elapsed = state.mode === 'timed' ? s.time - state.timer : state.timer;
+  const mins = Math.floor(Math.abs(state.timer) / 60);
+  const secs = Math.abs(state.timer) % 60;
+  const pct = state.mode === 'timed' ? (state.timer / s.time * 100) : Math.min((state.timer / s.time) * 100, 100);
+  const score = Math.round((state.checkedRubric.size / s.rubric.length) * 100);
+
+  return `
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h3 style="margin:0">Scenario</h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn" onclick="toggleHint()">Show Hint</button>
+          <button class="btn" onclick="endScenario()">End & Score</button>
+          <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="resetScenario()">Reset</button>
+        </div>
+      </div>
+      <div class="scenario-text">${s.q}</div>
+      <div class="hint-box ${state.showHint?'show':''}">
+        <strong>Hint:</strong> ${s.hint}
+      </div>
+    </div>
+    <div class="card">
+      <div class="timer ${state.mode==='timed'&&state.timer<60?'danger':state.mode==='timed'&&state.timer<120?'warning':''}" style="color:${state.mode==='timed'?state.timer<60?'var(--red)':state.timer<120?'var(--org)':'var(--ac)':'var(--ac)'}">
+        ${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:${Math.min(pct,100)}%;background:${pct>80&&state.mode==='timed'?'var(--red)':pct>60&&state.mode==='timed'?'var(--org)':'var(--ac)'}"></div>
+      </div>
+      <div style="display:flex;justify-content:center;gap:8px;margin-top:8px">
+        <button class="btn ${state.timerRunning?'':'btn-p'}" onclick="toggleTimer()">${state.timerRunning?'Pause':'Start'} Timer</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Your Notes</h3>
+      <textarea placeholder="Structure your response here. Use this as a scratchpad to organize your thoughts before speaking..." oninput="state.notes=this.value">${state.notes}</textarea>
+    </div>
+    <div class="card">
+      <h3>Self-Assessment Rubric <span style="color:var(--ac);font-size:13px;margin-left:8px">${score}%</span></h3>
+      <p style="font-size:11px;color:var(--t2);margin-bottom:12px">Check off each point you covered in your response:</p>
+      <div class="rubric">
+        ${s.rubric.map((r, i) => `
+          <div class="rubric-item ${state.checkedRubric.has(i)?'checked':''}" onclick="toggleRubric(${i})">
+            <div class="rubric-check">${state.checkedRubric.has(i)?'\u2713':''}</div>
+            <div>${r}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderHistory() {
+  return `
+    <div class="stats-grid">
+      <div class="stat-box"><div class="num" style="color:var(--grn)">${state.totalPracticed}</div><div class="lbl">Total Practiced</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--ac)">${state.avgScore||'--'}%</div><div class="lbl">Average Score</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--blue)">${state.history.filter(h=>h.score>=70).length}</div><div class="lbl">Passed (70%+)</div></div>
+      <div class="stat-box"><div class="num" style="color:var(--org)">${state.history.filter(h=>h.score<70).length}</div><div class="lbl">Needs Work</div></div>
+    </div>
+    <div class="card">
+      <h3>Practice History</h3>
+      ${state.history.length === 0 ? '<p style="color:var(--t2);text-align:center;padding:20px">No practice sessions yet. Start with a scenario!</p>' :
+        state.history.slice().reverse().map(h => `
+          <div class="history-item">
+            <div>
+              <div style="font-weight:600">${h.category}</div>
+              <div style="font-size:11px;color:var(--t2)">${h.question.substring(0,80)}...</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-weight:700;color:${h.score>=70?'var(--grn)':h.score>=50?'var(--yel)':'var(--red)'}">${h.score}%</div>
+              <div style="font-size:10px;color:var(--t2)">${h.time}</div>
+            </div>
+          </div>
+        `).join('')
+      }
+    </div>
+    <div class="card">
+      <h3>Preparation Checklist</h3>
+      <div style="font-size:12px;line-height:2;color:var(--t2)">
+        <div style="color:${getCatScore('threat-modeling')>=70?'var(--grn)':'var(--t2)'}">Threat Modeling - ${getCatScore('threat-modeling')}% average</div>
+        <div style="color:${getCatScore('incident-analysis')>=70?'var(--grn)':'var(--t2)'}">Attack Analysis - ${getCatScore('incident-analysis')}% average</div>
+        <div style="color:${getCatScore('cloud-security')>=70?'var(--grn)':'var(--t2)'}">Cloud Security - ${getCatScore('cloud-security')}% average</div>
+        <div style="color:${getCatScore('os-internals')>=70?'var(--grn)':'var(--t2)'}">OS Internals - ${getCatScore('os-internals')}% average</div>
+        <div style="color:${getCatScore('ai-security')>=70?'var(--grn)':'var(--t2)'}">AI Security - ${getCatScore('ai-security')}% average</div>
+        <div style="color:${getCatScore('behavioral')>=70?'var(--grn)':'var(--t2)'}">Behavioral - ${getCatScore('behavioral')}% average</div>
+      </div>
+    </div>
+  `;
+}
+
+function getCatScore(cat) {
+  const catHistory = state.history.filter(h => h.catKey === cat);
+  if (catHistory.length === 0) return 0;
+  return Math.round(catHistory.reduce((a,h) => a + h.score, 0) / catHistory.length);
+}
+
+function setMode(m) { state.mode = m; state.currentScenario = null; stopTimer(); render(); }
+function selectCategory(cat) { state.category = state.category === cat ? null : cat; render(); }
+
+function startScenario(cat, idx) {
+  state.currentScenario = CATEGORIES[cat].scenarios[idx];
+  state.currentCatKey = cat;
+  state.currentCatName = CATEGORIES[cat].name;
+  state.timer = state.mode === 'timed' ? state.currentScenario.time : 0;
+  state.timerRunning = false;
+  state.showHint = false;
+  state.checkedRubric = new Set();
+  state.notes = '';
+  stopTimer();
+  render();
+}
+
+function toggleTimer() {
+  if (state.timerRunning) {
+    stopTimer();
+  } else {
+    state.timerRunning = true;
+    state.timerInterval = setInterval(() => {
+      if (state.mode === 'timed') {
+        state.timer--;
+        if (state.timer <= 0) { state.timer = 0; stopTimer(); }
+      } else {
+        state.timer++;
+      }
+      render();
+    }, 1000);
+  }
+  render();
+}
+
+function stopTimer() {
+  state.timerRunning = false;
+  if (state.timerInterval) { clearInterval(state.timerInterval); state.timerInterval = null; }
+}
+
+function toggleHint() { state.showHint = !state.showHint; render(); }
+function toggleRubric(i) { state.checkedRubric.has(i) ? state.checkedRubric.delete(i) : state.checkedRubric.add(i); render(); }
+
+function endScenario() {
+  stopTimer();
+  const score = Math.round((state.checkedRubric.size / state.currentScenario.rubric.length) * 100);
+  const mins = Math.floor(state.timer / 60);
+  const secs = state.timer % 60;
+  state.history.push({
+    catKey: state.currentCatKey,
+    category: state.currentCatName,
+    question: state.currentScenario.q,
+    score,
+    time: `${mins}m ${secs}s`,
+    date: new Date().toLocaleDateString()
+  });
+  state.totalPracticed++;
+  state.avgScore = Math.round(state.history.reduce((a,h) => a + h.score, 0) / state.history.length);
+  state.currentScenario = null;
+  state.mode = 'history';
+  render();
+}
+
+function resetScenario() {
+  stopTimer();
+  state.currentScenario = null;
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
