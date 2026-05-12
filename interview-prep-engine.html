@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Security R&D Interview Prep Engine</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0a0d14;--s1:#111827;--s2:#1f2937;--s3:#374151;--bd:#4b5563;--t1:#f3f4f6;--t2:#9ca3af;--ac:#8b5cf6;--ac2:#a78bfa;--red:#f87171;--org:#fb923c;--yel:#fbbf24;--grn:#34d399;--blue:#60a5fa;--cyn:#22d3ee}
@@ -83,7 +84,7 @@ const CATEGORIES = {
     {q:'A malware sample is using syscalls directly instead of going through ntdll.dll. Why would it do this, and how would you detect it?',time:420,rubric:['Explains the role of ntdll.dll as the syscall stub layer','Identifies EDR/security tool hooking of ntdll as the motivation','Describes direct syscall techniques (manual syscall IDs, Hell\'s Gate, SysWhispers)','Explains how syscall numbers vary across Windows versions','Discusses detection challenges (no usermode hooks to trigger)','Proposes kernel-level detection (ETW Ti, syscall auditing)','Considers stack-based detection (return address analysis)','Addresses hardware-based detection approaches (Intel PT)'],hint:'Think about the Windows syscall chain: user code -> ntdll.dll stub -> kernel transition. Direct syscalls skip the ntdll layer that security tools typically hook.'}
   ]},
   'ai-security': {name:'AI Security',icon:'AI',scenarios:[
-    {q:'You are tasked with red teaming a new enterprise LLM deployment (like Microsoft Copilot). What is your methodology and what specific attacks would you test?',time:600,rubric:['Outlines structured red team methodology (scope, reconnaissance, attack dev, execution)','Tests direct prompt injection (system prompt override, instruction manipulation)','Tests indirect prompt injection (malicious content in grounding documents)','Evaluates data extraction risks (PII leakage, system prompt extraction)','Tests tool/plugin abuse scenarios (unauthorized actions, data exfiltration)','Assesses jailbreaking resistance (safety bypass techniques)','Tests multi-turn manipulation and context window attacks','Proposes ongoing monitoring and feedback loop for continuous improvement'],hint:'Think about the OWASP Top 10 for LLMs. Cover both the model layer attacks and the application layer attacks.'},
+    {q:'You are tasked with red teaming a new enterprise LLM assistant. What is your methodology and what specific attacks would you test?',time:600,rubric:['Outlines structured red team methodology (scope, reconnaissance, attack dev, execution)','Tests direct prompt injection (system prompt override, instruction manipulation)','Tests indirect prompt injection (malicious content in grounding documents)','Evaluates data extraction risks (PII leakage, system prompt extraction)','Tests tool/plugin abuse scenarios (unauthorized actions, data exfiltration)','Assesses jailbreaking resistance (safety bypass techniques)','Tests multi-turn manipulation and context window attacks','Proposes ongoing monitoring and feedback loop for continuous improvement'],hint:'Think about the OWASP Top 10 for LLMs. Cover both the model layer attacks and the application layer attacks.'},
     {q:'How would you design a detection system for adversarial attacks against a production ML model used for malware classification?',time:480,rubric:['Identifies adversarial evasion as primary threat (misclassifying malware as benign)','Proposes input monitoring (entropy analysis, feature distribution shifts)','Designs confidence-based detection (low-confidence predictions as anomalies)','Implements ensemble disagreement detection','Addresses data poisoning detection in training pipeline','Proposes adversarial training as a defense mechanism','Considers model monitoring for drift and degraded performance','Designs alerting and human-in-the-loop for suspicious classifications'],hint:'The key insight is that adversarial examples often look subtly different from natural inputs in ways that can be detected even if the model is fooled.'}
   ]},
   'behavioral': {name:'Behavioral',icon:'BQ',scenarios:[
@@ -112,7 +113,7 @@ function render() {
   app.innerHTML = `
     <div class="header">
       <h1><span>Security R&D</span> Interview Prep</h1>
-      <p>Microsoft Threat Intelligence & Security Research Role</p>
+      <p>Threat intelligence, detection engineering, AI security, and security research practice</p>
     </div>
     <div class="mode-selector">
       <div class="mode-btn ${state.mode==='practice'?'active':''}" onclick="setMode('practice')">Scenario Practice</div>

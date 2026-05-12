@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>APT Tracker & Campaign Intelligence</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#0a0e17;--surface:#111827;--surface2:#1a2332;--surface3:#243044;--accent:#ef4444;--accent2:#f97316;--accent3:#eab308;--green:#22c55e;--blue:#3b82f6;--purple:#a855f7;--cyan:#06b6d4;--pink:#ec4899;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:#1e293b}
@@ -122,9 +123,9 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="nav-item" data-section="malware-families"><span class="icon">🦠</span>Malware Family Tracker</div>
     <div class="nav-item" data-section="infrastructure"><span class="icon">🌐</span>Infrastructure Patterns</div>
     <div class="nav-item" data-section="collection"><span class="icon">📡</span>Collection & Sources</div>
-    <div class="nav-section">Microsoft Context</div>
-    <div class="nav-item" data-section="msft-naming"><span class="icon">🪟</span>Microsoft Threat Actors</div>
-    <div class="nav-item" data-section="defender-ti"><span class="icon">🛡️</span>Defender TI Integration</div>
+    <div class="nav-section">Vendor Context</div>
+    <div class="nav-item" data-section="msft-naming"><span class="icon">🪟</span>Actor Naming Crosswalk</div>
+    <div class="nav-item" data-section="defender-ti"><span class="icon">🛡️</span>Threat Intel API Reference</div>
   </nav>
 </div>
 
@@ -157,7 +158,7 @@ tr:hover td{background:rgba(255,255,255,.02)}
     <div class="timeline-item">
       <div class="timeline-date">Dec 2020 — Discovered</div>
       <div class="timeline-title">SolarWinds / SUNBURST (APT29 / Cozy Bear)</div>
-      <div class="timeline-desc">Supply chain compromise of SolarWinds Orion. Trojanized update (SUNBURST) deployed to ~18,000 orgs. TEARDROP & RAINDROP secondary payloads. Targeted US government agencies, Microsoft, FireEye. Demonstrated advanced OPSEC: DGA C2, steganography, SAML token forging (GoldenSAML).</div>
+      <div class="timeline-desc">Supply chain compromise of SolarWinds Orion. Trojanized update (SUNBURST) deployed to ~18,000 orgs. TEARDROP & RAINDROP secondary payloads. Targeted US government agencies and major technology/security vendors. Demonstrated advanced OPSEC: DGA C2, steganography, SAML token forging (GoldenSAML).</div>
     </div>
     <div class="timeline-item">
       <div class="timeline-date">2021 — Ongoing</div>
@@ -176,12 +177,12 @@ tr:hover td{background:rgba(255,255,255,.02)}
     </div>
     <div class="timeline-item">
       <div class="timeline-date">2023</div>
-      <div class="timeline-title">Storm-0558 — Microsoft Cloud Compromise</div>
-      <div class="timeline-desc">Chinese threat actor obtained Microsoft consumer signing key. Forged Azure AD tokens to access email of ~25 organizations including US government. Exploited validation flaw accepting consumer keys for enterprise. Led to major Microsoft security overhaul (Secure Future Initiative).</div>
+      <div class="timeline-title">Storm-0558 — Cloud Token Compromise</div>
+      <div class="timeline-desc">Chinese threat actor obtained a consumer signing key from a major cloud provider. Forged identity tokens to access email of ~25 organizations including US government. Exploited validation flaw accepting consumer keys for enterprise tenants. Led to a major provider security overhaul.</div>
     </div>
     <div class="timeline-item">
       <div class="timeline-date">2023-2024</div>
-      <div class="timeline-title">Midnight Blizzard — Microsoft Corporate Compromise (APT29)</div>
+      <div class="timeline-title">Midnight Blizzard — Corporate Cloud Compromise (APT29)</div>
       <div class="timeline-desc">Password spray against legacy non-MFA test tenant. Pivoted via OAuth app to access executive email. Exfiltrated source code repositories. Attempted to use stolen secrets for further access. Demonstrated risk of legacy configurations and OAuth app abuse.</div>
     </div>
     <div class="timeline-item">
@@ -692,11 +693,11 @@ Layer 1: Forensic Evidence              [Highest confidence alone]
 
 <!-- MICROSOFT NAMING -->
 <div class="section" id="msft-naming">
-  <h2>Microsoft Threat Actor Naming</h2>
-  <p class="subtitle">Microsoft's weather-themed taxonomy and cross-reference</p>
+  <h2>Threat Actor Naming Crosswalk</h2>
+  <p class="subtitle">Weather-themed actor names and common cross-references</p>
 
-  <h3>Microsoft Naming Convention</h3>
-  <div class="note">Microsoft uses weather-themed names based on nation-state affiliation. "Storm-XXXX" designates developing clusters not yet attributed to a known group.</div>
+  <h3>Weather-Themed Naming Convention</h3>
+  <div class="note">Some vendor taxonomies use weather-themed names based on nation-state affiliation or activity clusters. "Storm-XXXX" style names often designate developing clusters not yet attributed to a known group.</div>
 
   <table>
     <tr><th>Weather Theme</th><th>Nation/Motivation</th><th>Examples</th></tr>
@@ -710,10 +711,10 @@ Layer 1: Forensic Evidence              [Highest confidence alone]
     <tr><td style="color:var(--pink)">Flood 🌊</td><td>Influence Operations</td><td>Information operations, disinformation</td></tr>
   </table>
 
-  <h3>Key Microsoft Tracked Actors — Cross-Reference</h3>
+  <h3>Key Tracked Actors — Cross-Reference</h3>
   <table>
-    <tr><th>Microsoft Name</th><th>Other Names</th><th>Nation</th><th>Notable Activity</th></tr>
-    <tr><td>Midnight Blizzard</td><td>APT29, Cozy Bear, The Dukes, NOBELIUM</td><td>Russia (SVR)</td><td>SolarWinds, Microsoft corp breach, diplomatic espionage</td></tr>
+    <tr><th>Weather-Themed Name</th><th>Other Names</th><th>Nation</th><th>Notable Activity</th></tr>
+    <tr><td>Midnight Blizzard</td><td>APT29, Cozy Bear, The Dukes, NOBELIUM</td><td>Russia (SVR)</td><td>SolarWinds, major cloud provider breach, diplomatic espionage</td></tr>
     <tr><td>Forest Blizzard</td><td>APT28, Fancy Bear, Strontium, Sofacy</td><td>Russia (GRU 26165)</td><td>Election interference, NATO targeting, Olympic Destroyer</td></tr>
     <tr><td>Seashell Blizzard</td><td>Sandworm, Voodoo Bear, IRIDIUM</td><td>Russia (GRU 74455)</td><td>NotPetya, Ukraine wipers, Industroyer, power grid attacks</td></tr>
     <tr><td>Volt Typhoon</td><td>BRONZE SILHOUETTE, Insidious Taurus</td><td>China</td><td>US critical infrastructure LOTL, pre-positioning</td></tr>
@@ -729,26 +730,26 @@ Layer 1: Forensic Evidence              [Highest confidence alone]
 
 <!-- DEFENDER TI -->
 <div class="section" id="defender-ti">
-  <h2>Defender TI Integration</h2>
-  <p class="subtitle">Microsoft Defender Threat Intelligence for R&D workflows</p>
+  <h2>Threat Intelligence API Reference</h2>
+  <p class="subtitle">Threat intelligence enrichment patterns for R&D workflows</p>
 
-  <h3>Defender TI Capabilities</h3>
+  <h3>Threat Intelligence Capabilities</h3>
   <div class="card">
     <table>
       <tr><th>Feature</th><th>Description</th><th>R&D Application</th></tr>
-      <tr><td>Threat Articles</td><td>Microsoft-authored threat intel reports</td><td>Stay current on campaigns, validate findings</td></tr>
+      <tr><td>Threat Articles</td><td>Vendor-authored threat intel reports</td><td>Stay current on campaigns, validate findings</td></tr>
       <tr><td>Intel Profiles</td><td>Detailed actor/tool/vulnerability profiles</td><td>Reference during campaign analysis</td></tr>
-      <tr><td>Indicator Search</td><td>Enrich IOCs with Microsoft data</td><td>Validate IOCs, find related infrastructure</td></tr>
+      <tr><td>Indicator Search</td><td>Enrich IOCs with vendor telemetry and open-source data</td><td>Validate IOCs, find related infrastructure</td></tr>
       <tr><td>Data Sets</td><td>Passive DNS, WHOIS, certificates, trackers, components</td><td>Infrastructure mapping, pivot analysis</td></tr>
-      <tr><td>Reputation Scoring</td><td>IP/Domain reputation based on Microsoft telemetry</td><td>Prioritize investigation targets</td></tr>
+      <tr><td>Reputation Scoring</td><td>IP/domain reputation based on telemetry and intelligence sources</td><td>Prioritize investigation targets</td></tr>
       <tr><td>Attack Surface</td><td>External-facing asset discovery</td><td>Identify exposure, validate vulnerabilities</td></tr>
     </table>
   </div>
 
-  <h3>Defender TI API Integration</h3>
+  <h3>Threat Intel API Example</h3>
   <div class="card">
-<pre><span class="comment"># Query Defender TI API for indicator enrichment</span>
-<span class="comment"># Microsoft Graph Security API</span>
+<pre><span class="comment"># Query a threat intelligence API for indicator enrichment</span>
+<span class="comment"># Example: Graph Security threat intelligence endpoints</span>
 
 <span class="comment"># Get threat intelligence article</span>
 GET https://graph.microsoft.com/beta/security/threatIntelligence/articles/{articleId}
@@ -774,7 +775,7 @@ GET https://graph.microsoft.com/beta/security/threatIntelligence/hosts/{hostName
 
   <h3>KQL Hunting Queries for APT Activity</h3>
   <div class="card">
-    <div class="card-title">Microsoft Sentinel / Defender Advanced Hunting</div>
+    <div class="card-title">SIEM / EDR Advanced Hunting</div>
 <pre><span class="comment">// Detect Volt Typhoon LOTL techniques</span>
 DeviceProcessEvents
 | <span class="keyword">where</span> FileName <span class="keyword">in~</span> (<span class="string">"ntdsutil.exe"</span>, <span class="string">"netsh.exe"</span>, <span class="string">"certutil.exe"</span>)
@@ -817,7 +818,7 @@ const APT_DATA = [
    active:"2008 — Present",sophistication:"Very High",
    ttps:"Supply chain compromise, credential theft, OAuth abuse, SAML token forging, cloud exploitation, living-off-the-land",
    tools:"SUNBURST, TEARDROP, EnvyScout, MagicWeb, FoggyWeb, custom tooling",
-   campaigns:"SolarWinds (2020), Microsoft Corp Breach (2023), Diplomatic phishing campaigns",
+   campaigns:"SolarWinds (2020), corporate cloud breach (2023), diplomatic phishing campaigns",
    notes:"One of the most sophisticated state actors. Known for exceptional OPSEC and patience. Heavy focus on cloud identity and authentication systems. Recently pivoted to targeting cloud infrastructure and identity providers."},
 
   {name:"APT28 / Fancy Bear",aliases:"Forest Blizzard, Strontium, Sofacy, Pawn Storm, Sednit",country:"russia",type:"nation",
@@ -857,7 +858,7 @@ const APT_DATA = [
    active:"2017 — Present",sophistication:"High",
    ttps:"Zero-day exploitation, web shell deployment, credential dumping, data exfiltration",
    tools:"China Chopper, ASPXSPY, custom web shells, Covenant, ProxyLogon chain",
-   campaigns:"Microsoft Exchange ProxyLogon exploitation (2021), ProxyShell",
+   campaigns:"Exchange Server ProxyLogon exploitation (2021), ProxyShell",
    notes:"Responsible for mass Exchange Server exploitation affecting thousands of organizations worldwide. Known for rapid zero-day exploitation. Recent shift to targeting IT infrastructure providers."},
 
   {name:"Lazarus Group",aliases:"Diamond Sleet, ZINC, Hidden Cobra, Guardians of Peace",country:"dprk",type:"nation",
