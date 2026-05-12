@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Threat Hunt Builder</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1a2332;--surface3:#243044;--accent:#ef4444;--accent2:#f97316;--green:#22c55e;--blue:#3b82f6;--purple:#a855f7;--cyan:#06b6d4;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:#1e293b;--warning:#fbbf24}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;line-height:1.5}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+.topbar a{color:var(--text2);text-decoration:none;font-size:13px}
+.topbar a:hover{color:var(--cyan)}
+.topbar .status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--text3)}
+.status-dot.ready{background:var(--green)}
+.status-dot.unconfigured{background:var(--warning)}
+.status-dot.error{background:var(--accent)}
+
+.hero{text-align:center;padding:40px 24px 24px;max-width:900px;margin:0 auto}
+.hero-icon{font-size:40px;margin-bottom:12px}
+.hero h1{font-size:28px;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,var(--accent),var(--accent2),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--text2);font-size:14px;max-width:680px;margin:0 auto}
+
+.notice{max-width:900px;margin:0 auto 24px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:10px;color:var(--text2);font-size:12px;display:flex;gap:10px;align-items:flex-start}
+.notice strong{color:var(--warning)}
+
+.workspace{max-width:1100px;margin:0 auto;padding:0 24px 60px;display:grid;grid-template-columns:260px 1fr;gap:24px}
+@media(max-width:900px){.workspace{grid-template-columns:1fr}}
+
+.stepper{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;align-self:flex-start;position:sticky;top:24px}
+.stepper h3{font-size:11px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:14px;font-weight:600}
+.step{display:flex;gap:10px;padding:10px;border-radius:8px;cursor:pointer;margin-bottom:4px;transition:background .15s}
+.step:hover{background:var(--surface2)}
+.step.active{background:var(--surface2);border-left:3px solid var(--accent)}
+.step.done .step-num{background:var(--green);color:var(--bg)}
+.step-num{width:24px;height:24px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);flex-shrink:0}
+.step.active .step-num{background:var(--accent);color:#fff}
+.step-label{font-size:13px;color:var(--text)}
+.step-meta{font-size:11px;color:var(--text3);margin-top:2px}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;min-height:400px}
+.panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.panel-header h2{font-size:18px;font-weight:600}
+.panel-sub{font-size:13px;color:var(--text2);margin-bottom:20px}
+
+.field{margin-bottom:18px}
+.field label{display:block;font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500;text-transform:uppercase;letter-spacing:1px}
+.field input, .field textarea, .field select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;resize:vertical}
+.field input:focus, .field textarea:focus, .field select:focus{outline:none;border-color:var(--accent)}
+.field textarea{min-height:90px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.field-row{grid-template-columns:1fr}}
+
+.btn{background:var(--accent);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .15s;font-family:inherit}
+.btn:hover{background:var(--accent2);transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-secondary{background:var(--surface3);color:var(--text)}
+.btn-secondary:hover{background:var(--border);transform:none}
+.btn-ai{background:linear-gradient(135deg,var(--purple),var(--cyan));}
+.btn-ai:hover{background:linear-gradient(135deg,var(--cyan),var(--purple))}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+.ai-output{background:var(--bg);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-top:14px;font-size:13px;white-space:pre-wrap;line-height:1.7;color:var(--text)}
+.ai-output.empty{color:var(--text3);font-style:italic;text-align:center;padding:24px}
+.ai-output ul, .ai-output ol{margin-left:18px;margin-top:4px;margin-bottom:8px}
+.ai-output li{margin-bottom:4px}
+.ai-output code{background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:12px;font-family:'Cascadia Code',monospace}
+
+.loading{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.chip-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{font-size:11px;padding:4px 10px;border-radius:14px;background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.chip.atlas{background:rgba(239,68,68,.12);color:var(--accent);border-color:rgba(239,68,68,.3)}
+.chip.attack{background:rgba(59,130,246,.12);color:var(--blue);border-color:rgba(59,130,246,.3)}
+
+.nav-row{display:flex;justify-content:space-between;margin-top:24px;padding-top:18px;border-top:1px solid var(--border)}
+
+.export-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+.export-card h4{font-size:14px;margin-bottom:6px;color:var(--cyan)}
+.export-card p{font-size:12px;color:var(--text2);margin-bottom:10px}
+
+.error-msg{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);color:#fca5a5;padding:10px 12px;border-radius:8px;font-size:13px;margin-top:10px}
+
+pre.brief{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:'Cascadia Code','Consolas',monospace;font-size:12px;color:var(--text);overflow-x:auto;max-height:400px;overflow-y:auto;white-space:pre-wrap}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html">← AI Threat Hunt Field Lab</a>
+  <div class="status">
+    <span class="status-dot" id="ai-status-dot"></span>
+    <span id="ai-status-text">Checking AI…</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-icon">🎯</div>
+  <h1>AI Threat Hunt Builder</h1>
+  <p>Hypothesis-driven hunt planning for AI systems. Sharpen a suspicion, map it to ATLAS/ATT&amp;CK, identify telemetry, draft queries, define success — export a hunt brief you can run.</p>
+</div>
+
+<div class="notice">
+  <span>🔒</span>
+  <div><strong>Data leaves the browser only when you click an AI button.</strong> Each "Ask AI" call sends the relevant field text to Gemini via Firebase AI Logic — see the Privacy section below for what exactly is sent. Your work is saved locally in this browser; clear it via the trash icon in the stepper.</div>
+</div>
+
+<div class="workspace">
+  <div class="stepper">
+    <h3>Hunt Plan</h3>
+    <div class="step active" data-step="0"><div class="step-num">1</div><div><div class="step-label">Hypothesis</div><div class="step-meta">What do you suspect?</div></div></div>
+    <div class="step" data-step="1"><div class="step-num">2</div><div><div class="step-label">Threat mapping</div><div class="step-meta">ATLAS &amp; ATT&amp;CK</div></div></div>
+    <div class="step" data-step="2"><div class="step-num">3</div><div><div class="step-label">Telemetry</div><div class="step-meta">Data needed</div></div></div>
+    <div class="step" data-step="3"><div class="step-num">4</div><div><div class="step-label">Queries</div><div class="step-meta">KQL / SPL stubs</div></div></div>
+    <div class="step" data-step="4"><div class="step-num">5</div><div><div class="step-label">Success criteria</div><div class="step-meta">Pass / fail</div></div></div>
+    <div class="step" data-step="5"><div class="step-num">6</div><div><div class="step-label">Export brief</div><div class="step-meta">JSON / Markdown</div></div></div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:14px;font-size:12px;padding:8px" id="reset-btn">Clear plan</button>
+  </div>
+
+  <div>
+    <!-- STEP 1: Hypothesis -->
+    <div class="panel" data-panel="0">
+      <div class="panel-header"><h2>1. State the hypothesis</h2></div>
+      <div class="panel-sub">Describe what you suspect in plain English. AI will rewrite it as a testable, falsifiable hunt hypothesis (PEAK-style).</div>
+      <div class="field">
+        <label>What do you suspect is happening?</label>
+        <textarea id="hyp-raw" placeholder="e.g., Our customer support copilot may be leaking PII through prompt injection in inbound email tickets."></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>AI system in scope</label>
+          <input id="hyp-system" placeholder="e.g., Support Copilot v3 (RAG over Zendesk)">
+        </div>
+        <div class="field">
+          <label>Adversary motivation</label>
+          <select id="hyp-motive">
+            <option value="">— select —</option>
+            <option>Data exfiltration</option>
+            <option>Credential theft</option>
+            <option>Insider abuse</option>
+            <option>Reputation / brand damage</option>
+            <option>Model evasion / jailbreak</option>
+            <option>Supply chain compromise</option>
+            <option>Unknown — exploratory hunt</option>
+          </select>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ai" onclick="sharpenHypothesis()">✨ Sharpen with AI</button>
+        <button class="btn btn-secondary" onclick="next()">Next →</button>
+      </div>
+      <div class="ai-output empty" id="hyp-out">AI-sharpened hypothesis will appear here.</div>
+    </div>
+
+    <!-- STEP 2: Threat mapping -->
+    <div class="panel" data-panel="1" style="display:none">
+      <div class="panel-header"><h2>2. Map to ATLAS &amp; ATT&amp;CK</h2></div>
+      <div class="panel-sub">Get suggested MITRE ATLAS tactics (AI-specific) and classical ATT&amp;CK techniques that this hypothesis would touch.</div>
+      <div class="btn-row">
+        <button class="btn btn-ai" onclick="mapThreats()">✨ Suggest mappings</button>
+        <button class="btn btn-secondary" onclick="prev()">← Back</button>
+        <button class="btn btn-secondary" onclick="next()">Next →</button>
+      </div>
+      <div class="ai-output empty" id="map-out">ATLAS &amp; ATT&amp;CK mappings will appear here.</div>
+    </div>
+
+    <!-- STEP 3: Telemetry -->
+    <div class="panel" data-panel="2" style="display:none">
+      <div class="panel-header"><h2>3. Telemetry needed</h2></div>
+      <div class="panel-sub">What logs and signals do you need to test the hypothesis? AI will list data sources, fields, and likely gaps.</div>
+      <div class="field">
+        <label>Available data sources (one per line)</label>
+        <textarea id="tel-have" placeholder="e.g.&#10;Microsoft Defender XDR&#10;Entra ID sign-in logs&#10;Copilot Studio audit logs&#10;Azure OpenAI prompt logs"></textarea>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ai" onclick="planTelemetry()">✨ Plan telemetry</button>
+        <button class="btn btn-secondary" onclick="prev()">← Back</button>
+        <button class="btn btn-secondary" onclick="next()">Next →</button>
+      </div>
+      <div class="ai-output empty" id="tel-out">Telemetry plan will appear here.</div>
+    </div>
+
+    <!-- STEP 4: Queries -->
+    <div class="panel" data-panel="3" style="display:none">
+      <div class="panel-header"><h2>4. Query stubs</h2></div>
+      <div class="panel-sub">AI drafts starter queries for the platforms you use. These are starting points — review, scope to your environment, and tune.</div>
+      <div class="field">
+        <label>Query platform</label>
+        <select id="q-platform">
+          <option>KQL (Microsoft Sentinel / Defender XDR)</option>
+          <option>SPL (Splunk)</option>
+          <option>SQL (data lake)</option>
+          <option>Elastic ES|QL</option>
+        </select>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ai" onclick="draftQueries()">✨ Draft queries</button>
+        <button class="btn btn-secondary" onclick="prev()">← Back</button>
+        <button class="btn btn-secondary" onclick="next()">Next →</button>
+      </div>
+      <div class="ai-output empty" id="q-out">Query stubs will appear here.</div>
+    </div>
+
+    <!-- STEP 5: Success criteria -->
+    <div class="panel" data-panel="4" style="display:none">
+      <div class="panel-header"><h2>5. Define success</h2></div>
+      <div class="panel-sub">What would prove the hypothesis true? False? What's the next step in either case?</div>
+      <div class="btn-row">
+        <button class="btn btn-ai" onclick="defineSuccess()">✨ Draft success criteria</button>
+        <button class="btn btn-secondary" onclick="prev()">← Back</button>
+        <button class="btn btn-secondary" onclick="next()">Next →</button>
+      </div>
+      <div class="ai-output empty" id="suc-out">Success criteria will appear here.</div>
+    </div>
+
+    <!-- STEP 6: Export -->
+    <div class="panel" data-panel="5" style="display:none">
+      <div class="panel-header"><h2>6. Export hunt brief</h2></div>
+      <div class="panel-sub">Bundle everything into a hunt brief you can drop into a wiki, ticket, or hand to a hunter.</div>
+      <div class="export-card">
+        <h4>Markdown brief</h4>
+        <p>Human-readable, ready for Confluence / Notion / GitHub.</p>
+        <div class="btn-row">
+          <button class="btn" onclick="exportMarkdown()">⬇ Download .md</button>
+          <button class="btn btn-secondary" onclick="copyMarkdown()">📋 Copy to clipboard</button>
+        </div>
+      </div>
+      <div class="export-card">
+        <h4>JSON brief</h4>
+        <p>Machine-readable, for ingestion into a hunt tracker.</p>
+        <div class="btn-row">
+          <button class="btn" onclick="exportJSON()">⬇ Download .json</button>
+        </div>
+      </div>
+      <div class="export-card">
+        <h4>Preview</h4>
+        <pre class="brief" id="brief-preview">(generate the brief by completing the steps above)</pre>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="prev()">← Back</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { askGemini, app as fbApp } from "../ai-config.js";
+
+// ---------- State ----------
+const STORAGE_KEY = "ai-threat-hunt-builder-v1";
+const state = loadState() || {
+  hyp: { raw:"", system:"", motive:"", sharpened:"" },
+  map: "",
+  tel: { have:"", plan:"" },
+  q:   { platform:"KQL (Microsoft Sentinel / Defender XDR)", stubs:"" },
+  suc: "",
+  currentStep: 0
+};
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); }
+  catch { return null; }
+}
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+// ---------- UI wiring ----------
+const panels = document.querySelectorAll(".panel[data-panel]");
+const steps  = document.querySelectorAll(".step[data-step]");
+
+function showStep(n) {
+  state.currentStep = n;
+  panels.forEach(p => p.style.display = (+p.dataset.panel === n ? "" : "none"));
+  steps.forEach(s => s.classList.toggle("active", +s.dataset.step === n));
+  saveState();
+  if (n === 5) renderBrief();
+}
+window.next = () => showStep(Math.min(5, state.currentStep + 1));
+window.prev = () => showStep(Math.max(0, state.currentStep - 1));
+steps.forEach(s => s.addEventListener("click", () => showStep(+s.dataset.step)));
+
+document.getElementById("reset-btn").addEventListener("click", () => {
+  if (!confirm("Clear the entire hunt plan? This cannot be undone.")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+});
+
+// Hydrate inputs from state
+function bindInput(id, getter, setter) {
+  const el = document.getElementById(id);
+  el.value = getter() || "";
+  el.addEventListener("input", () => { setter(el.value); saveState(); });
+}
+bindInput("hyp-raw",    () => state.hyp.raw,    v => state.hyp.raw = v);
+bindInput("hyp-system", () => state.hyp.system, v => state.hyp.system = v);
+bindInput("hyp-motive", () => state.hyp.motive, v => state.hyp.motive = v);
+bindInput("tel-have",   () => state.tel.have,   v => state.tel.have = v);
+bindInput("q-platform", () => state.q.platform, v => state.q.platform = v);
+
+// Hydrate AI outputs
+if (state.hyp.sharpened) renderOut("hyp-out", state.hyp.sharpened);
+if (state.map)           renderOut("map-out", state.map);
+if (state.tel.plan)      renderOut("tel-out", state.tel.plan);
+if (state.q.stubs)       renderOut("q-out", state.q.stubs);
+if (state.suc)           renderOut("suc-out", state.suc);
+showStep(state.currentStep || 0);
+
+// ---------- AI status ----------
+async function checkAIStatus() {
+  const dot  = document.getElementById("ai-status-dot");
+  const text = document.getElementById("ai-status-text");
+  // Heuristic: ai-config.js still has REPLACE_ placeholders → not configured
+  try {
+    const cfg = fbApp.options || {};
+    if (!cfg.projectId || cfg.projectId.startsWith("REPLACE_")) {
+      dot.className = "status-dot unconfigured";
+      text.textContent = "AI not configured — see ai-config.js";
+      return;
+    }
+    dot.className = "status-dot ready";
+    text.textContent = `AI ready · ${cfg.projectId}`;
+  } catch (e) {
+    dot.className = "status-dot error";
+    text.textContent = "AI init failed";
+  }
+}
+checkAIStatus();
+
+// ---------- AI prompt helpers ----------
+function renderOut(id, text) {
+  const el = document.getElementById(id);
+  el.classList.remove("empty");
+  // Light markdown → HTML (bold, lists, code)
+  const html = escapeHTML(text)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`(.+?)`/g, "<code>$1</code>")
+    .replace(/^(\s*)[-*]\s+(.+)$/gm, "$1• $2");
+  el.innerHTML = html;
+}
+function renderError(id, msg) {
+  const el = document.getElementById(id);
+  el.classList.remove("empty");
+  el.innerHTML = `<div class="error-msg">⚠ ${escapeHTML(msg)}</div>`;
+}
+function escapeHTML(s) {
+  return String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+}
+function setLoading(buttonText, btnSelector) {
+  const btn = document.querySelector(btnSelector);
+  if (!btn) return () => {};
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `<span class="loading"></span> ${buttonText}`;
+  return () => { btn.disabled = false; btn.innerHTML = orig; };
+}
+
+// ---------- Step actions ----------
+window.sharpenHypothesis = async () => {
+  if (!state.hyp.raw.trim()) { alert("Describe what you suspect first."); return; }
+  const stop = setLoading("Thinking…", "[data-panel='0'] .btn-ai");
+  const prompt = `You are a senior threat hunter applying the PEAK framework to AI-system threats.
+Rewrite the user's suspicion as a single, falsifiable hunt hypothesis. Then list 3 sub-questions that would confirm or refute it.
+
+AI system in scope: ${state.hyp.system || "(not specified)"}
+Adversary motivation: ${state.hyp.motive || "(not specified)"}
+User's suspicion: """${state.hyp.raw}"""
+
+Format:
+**Hypothesis:** <one sentence, testable>
+**Sub-questions:**
+- Q1
+- Q2
+- Q3`;
+  const { text, error } = await askGemini(prompt);
+  stop();
+  if (error) return renderError("hyp-out", error);
+  state.hyp.sharpened = text; saveState();
+  renderOut("hyp-out", text);
+};
+
+window.mapThreats = async () => {
+  const stop = setLoading("Mapping…", "[data-panel='1'] .btn-ai");
+  const prompt = `For this AI-threat-hunt hypothesis, suggest MITRE ATLAS tactics/techniques (AI-specific) and classical MITRE ATT&CK techniques that the hunt should look for.
+
+Hypothesis: """${state.hyp.sharpened || state.hyp.raw}"""
+
+Return:
+**ATLAS:** bullet list, each entry as \`AML.TXXXX — Technique Name — one-line why\`.
+**ATT&CK:** bullet list, each entry as \`TXXXX — Technique Name — one-line why\`.
+**Adversary behavior summary:** 2-3 sentences in plain English describing how an attacker would chain these.`;
+  const { text, error } = await askGemini(prompt);
+  stop();
+  if (error) return renderError("map-out", error);
+  state.map = text; saveState();
+  renderOut("map-out", text);
+};
+
+window.planTelemetry = async () => {
+  const stop = setLoading("Planning…", "[data-panel='2'] .btn-ai");
+  const prompt = `As a detection engineer, list the telemetry needed to test this AI threat hunt hypothesis.
+
+Hypothesis: """${state.hyp.sharpened || state.hyp.raw}"""
+MITRE mappings: """${state.map || "(none yet)"}"""
+Data sources the hunter has: """${state.tel.have || "(none specified — assume defaults)"}"""
+
+Return:
+**Required data:** bullet list — for each, give: source · key fields · what to look for.
+**Likely gaps:** what the hunter probably doesn't have but should ask for.
+**Coverage call:** GREEN / YELLOW / RED with one-sentence justification (can this hunt actually run?).`;
+  const { text, error } = await askGemini(prompt);
+  stop();
+  if (error) return renderError("tel-out", error);
+  state.tel.plan = text; saveState();
+  renderOut("tel-out", text);
+};
+
+window.draftQueries = async () => {
+  const stop = setLoading("Drafting…", "[data-panel='3'] .btn-ai");
+  const prompt = `Draft 2-3 starter ${state.q.platform} queries for this AI-threat hunt. These are STARTING POINTS — annotate clearly where the hunter must scope to their environment.
+
+Hypothesis: """${state.hyp.sharpened || state.hyp.raw}"""
+Telemetry plan: """${state.tel.plan || "(none yet)"}"""
+
+For each query:
+1. **What it finds** — one sentence
+2. The query in a fenced code block
+3. **Tuning notes** — fields likely to need adjustment, false-positive sources to filter
+
+Be honest if a query is speculative because table/field names depend on the customer's schema.`;
+  const { text, error } = await askGemini(prompt);
+  stop();
+  if (error) return renderError("q-out", error);
+  state.q.stubs = text; saveState();
+  renderOut("q-out", text);
+};
+
+window.defineSuccess = async () => {
+  const stop = setLoading("Drafting…", "[data-panel='4'] .btn-ai");
+  const prompt = `Define success criteria for this AI threat hunt.
+
+Hypothesis: """${state.hyp.sharpened || state.hyp.raw}"""
+
+Return:
+**Hypothesis confirmed if:** specific observable evidence that would prove it.
+**Hypothesis refuted if:** specific observations that would clear it.
+**Inconclusive if:** what would leave the hunter still uncertain and what to do next.
+**Next steps (confirmed path):** containment, IR triggers, detection-engineering work to harden.
+**Next steps (refuted path):** what to document and what adjacent hypotheses become more credible.
+**Time-box:** suggested investigation duration before declaring inconclusive.`;
+  const { text, error } = await askGemini(prompt);
+  stop();
+  if (error) return renderError("suc-out", error);
+  state.suc = text; saveState();
+  renderOut("suc-out", text);
+};
+
+// ---------- Export ----------
+function buildMarkdown() {
+  const ts = new Date().toISOString();
+  return `# AI Threat Hunt Brief
+
+*Generated ${ts} via AI Threat Hunt Builder*
+
+## 1. Hypothesis
+- **AI system:** ${state.hyp.system || "—"}
+- **Adversary motivation:** ${state.hyp.motive || "—"}
+- **Raw suspicion:** ${state.hyp.raw || "—"}
+
+${state.hyp.sharpened || "_(not generated)_"}
+
+## 2. Threat mapping (ATLAS & ATT&CK)
+${state.map || "_(not generated)_"}
+
+## 3. Telemetry plan
+- **Available data sources:**
+${(state.tel.have||"—").split("\n").map(l=>`  - ${l}`).join("\n")}
+
+${state.tel.plan || "_(not generated)_"}
+
+## 4. Query stubs (${state.q.platform})
+${state.q.stubs || "_(not generated)_"}
+
+## 5. Success criteria
+${state.suc || "_(not generated)_"}
+
+---
+*Drafted with Gemini via Firebase AI Logic. Review every section before running this hunt against production data.*
+`;
+}
+function buildJSON() {
+  return JSON.stringify({
+    generated_at: new Date().toISOString(),
+    version: "1.0",
+    hypothesis: state.hyp,
+    threat_mapping: state.map,
+    telemetry: state.tel,
+    queries: state.q,
+    success_criteria: state.suc
+  }, null, 2);
+}
+function renderBrief() {
+  document.getElementById("brief-preview").textContent = buildMarkdown();
+}
+window.exportMarkdown = () => {
+  const blob = new Blob([buildMarkdown()], { type:"text/markdown" });
+  download(blob, "ai-hunt-brief.md");
+};
+window.exportJSON = () => {
+  const blob = new Blob([buildJSON()], { type:"application/json" });
+  download(blob, "ai-hunt-brief.json");
+};
+window.copyMarkdown = async () => {
+  try { await navigator.clipboard.writeText(buildMarkdown()); alert("Copied to clipboard."); }
+  catch (e) { alert("Copy failed: " + e.message); }
+};
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>

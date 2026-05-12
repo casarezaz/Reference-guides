@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent Evidence Lab</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1a2332;--surface3:#243044;--accent:#ef4444;--accent2:#f97316;--green:#22c55e;--blue:#3b82f6;--purple:#a855f7;--cyan:#06b6d4;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:#1e293b;--warning:#fbbf24}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;line-height:1.5}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+.topbar a{color:var(--text2);text-decoration:none;font-size:13px}
+.topbar a:hover{color:var(--cyan)}
+.status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--text3)}
+.status-dot.ready{background:var(--green)}.status-dot.unconfigured{background:var(--warning)}.status-dot.error{background:var(--accent)}
+
+.hero{text-align:center;padding:40px 24px 24px;max-width:900px;margin:0 auto}
+.hero-icon{font-size:40px;margin-bottom:12px}
+.hero h1{font-size:28px;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,var(--cyan),var(--blue),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--text2);font-size:14px;max-width:680px;margin:0 auto}
+
+.notice{max-width:1200px;margin:0 auto 24px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:10px;color:var(--text2);font-size:12px;display:flex;gap:10px;align-items:flex-start}
+.notice strong{color:var(--warning)}
+
+.container{max-width:1200px;margin:0 auto;padding:0 24px 60px;display:grid;grid-template-columns:1fr 1fr;gap:18px}
+@media(max-width:1000px){.container{grid-template-columns:1fr}}
+
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px;display:flex;flex-direction:column}
+.panel h2{font-size:17px;font-weight:600;margin-bottom:4px}
+.panel-sub{font-size:13px;color:var(--text2);margin-bottom:16px}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.field input, .field textarea, .field select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;font-family:inherit;resize:vertical}
+.field input:focus, .field textarea:focus, .field select:focus{outline:none;border-color:var(--cyan)}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field textarea{font-family:'Cascadia Code','Consolas',monospace;font-size:12px;line-height:1.55}
+@media(max-width:600px){.field-row{grid-template-columns:1fr}}
+
+.btn{background:var(--cyan);color:#0a0e17;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .15s;font-family:inherit}
+.btn:hover{background:var(--blue);color:#fff;transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-secondary{background:var(--surface3);color:var(--text)}
+.btn-secondary:hover{background:var(--border);transform:none;color:var(--text)}
+.btn-ai{background:linear-gradient(135deg,var(--cyan),var(--blue),var(--purple));color:#fff}
+.btn-ai:hover{background:linear-gradient(135deg,var(--purple),var(--blue),var(--cyan));color:#fff}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+
+.loading{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.error-msg{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);color:#fca5a5;padding:10px 12px;border-radius:8px;font-size:13px;margin-top:10px}
+
+/* Timeline */
+.timeline{display:flex;flex-direction:column;gap:0;margin-top:6px}
+.tl-event{display:grid;grid-template-columns:90px 1fr;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);position:relative}
+.tl-event:last-child{border-bottom:none}
+.tl-time{font-family:'Cascadia Code',monospace;font-size:11px;color:var(--text3);padding-top:2px}
+.tl-body{font-size:13px;line-height:1.5}
+.tl-actor{display:inline-block;font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;margin-right:8px;text-transform:uppercase;letter-spacing:.5px}
+.tl-actor.user{background:rgba(34,197,94,.15);color:var(--green)}
+.tl-actor.model{background:rgba(168,85,247,.15);color:var(--purple)}
+.tl-actor.tool{background:rgba(6,182,212,.15);color:var(--cyan)}
+.tl-actor.system{background:rgba(100,116,139,.15);color:var(--text2)}
+.tl-actor.external{background:rgba(249,115,22,.15);color:var(--accent2)}
+.tl-text{color:var(--text);margin-top:4px;word-wrap:break-word}
+.tl-text code{background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:11px;font-family:'Cascadia Code',monospace}
+.tl-flag{display:inline-block;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:var(--accent);font-size:10px;padding:2px 8px;border-radius:10px;margin-top:6px;font-weight:600}
+.tl-flag.warn{background:rgba(251,191,36,.12);border-color:rgba(251,191,36,.4);color:var(--warning)}
+
+/* Anomalies */
+.anomaly-card{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:8px;padding:12px 14px;margin-bottom:10px}
+.anomaly-card.warn{border-left-color:var(--warning)}
+.anomaly-card.info{border-left-color:var(--cyan)}
+.anomaly-card h4{font-size:13px;font-weight:600;color:var(--accent);margin-bottom:4px}
+.anomaly-card.warn h4{color:var(--warning)}
+.anomaly-card.info h4{color:var(--cyan)}
+.anomaly-card p{font-size:12px;color:var(--text2);line-height:1.55}
+.anomaly-card .evidence{font-size:11px;color:var(--text3);margin-top:6px;font-family:'Cascadia Code',monospace;background:var(--bg);padding:6px 8px;border-radius:6px}
+
+.empty{color:var(--text3);font-size:13px;font-style:italic;text-align:center;padding:24px;border:1px dashed var(--border);border-radius:8px}
+
+pre.brief{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:'Cascadia Code','Consolas',monospace;font-size:11px;color:var(--text);overflow-x:auto;max-height:300px;overflow-y:auto;white-space:pre-wrap;line-height:1.55}
+
+.sample-trigger{font-size:11px;color:var(--cyan);cursor:pointer;text-decoration:underline;margin-left:8px}
+
+.severity-badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+.sev-critical{background:rgba(239,68,68,.2);color:var(--accent);border:1px solid var(--accent)}
+.sev-high{background:rgba(249,115,22,.2);color:var(--accent2);border:1px solid var(--accent2)}
+.sev-medium{background:rgba(251,191,36,.2);color:var(--warning);border:1px solid var(--warning)}
+.sev-low{background:rgba(34,197,94,.2);color:var(--green);border:1px solid var(--green)}
+.sev-info{background:rgba(6,182,212,.2);color:var(--cyan);border:1px solid var(--cyan)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html">← AI Threat Hunt Field Lab</a>
+  <div class="status">
+    <span class="status-dot" id="ai-status-dot"></span>
+    <span id="ai-status-text">Checking AI…</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-icon">🔍</div>
+  <h1>AI Agent Evidence Lab</h1>
+  <p>Reconstruct what an AI agent did. Paste prompts, tool calls, and downstream actions — Gemini timelines the events, flags anomalies, and drafts the incident write-up.</p>
+</div>
+
+<div class="notice">
+  <span>🔒</span>
+  <div><strong>Sensitive data warning.</strong> Agent traces often contain PII, secrets, or customer data. Each AI call sends the trace text to Gemini via Firebase AI Logic — redact before pasting if your traces include things you can't share with a third-party model. All non-AI work happens locally in this browser.</div>
+</div>
+
+<div class="container">
+  <!-- LEFT: INPUT -->
+  <div class="panel">
+    <h2>1. Incident context</h2>
+    <div class="panel-sub">A few facts that help the AI interpret the trace correctly.</div>
+    <div class="field-row">
+      <div class="field"><label>Agent / system name</label><input id="ctx-name" placeholder="e.g., Sales-Outreach-Agent v2"></div>
+      <div class="field"><label>Identity used by agent</label><input id="ctx-identity" placeholder="e.g., sp-sales-agent-prod"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>When was this noticed?</label><input id="ctx-noticed" type="datetime-local"></div>
+      <div class="field"><label>What triggered the look?</label><input id="ctx-trigger" placeholder="e.g., DLP alert: outbound email to gmail.com"></div>
+    </div>
+    <div class="field"><label>What you currently suspect</label><textarea id="ctx-suspect" placeholder="One sentence. Even a vague hunch helps anchor the analysis." style="min-height:60px;font-family:inherit;font-size:14px"></textarea></div>
+
+    <h2 style="margin-top:8px">2. Agent trace</h2>
+    <div class="panel-sub">Paste anything you have — model prompts, tool call JSON, downstream system logs. Multiple formats OK; AI will reconcile them.
+      <a class="sample-trigger" onclick="loadSample()">load sample trace</a>
+    </div>
+    <div class="field"><textarea id="trace" placeholder="e.g.&#10;[2026-05-11 14:22:01] USER: Send a summary of last week's deals to my partner&#10;[2026-05-11 14:22:02] MODEL: I'll pull the deals and draft the email.&#10;[2026-05-11 14:22:03] TOOL_CALL: search_crm({status: 'closed-won', since: '2026-05-04'})&#10;[2026-05-11 14:22:05] TOOL_RESPONSE: 14 records returned&#10;[2026-05-11 14:22:08] TOOL_CALL: send_email({to: 'partner@personal-gmail.com', body: '...'})&#10;..." style="min-height:240px"></textarea></div>
+
+    <div class="btn-row">
+      <button class="btn btn-ai" onclick="runAnalysis()">⚡ Analyze trace</button>
+      <button class="btn btn-secondary" onclick="clearAll()">Clear</button>
+    </div>
+    <div id="analysis-error"></div>
+  </div>
+
+  <!-- RIGHT: OUTPUT -->
+  <div class="panel">
+    <h2>Reconstruction</h2>
+    <div class="panel-sub" id="recon-sub">Run the analysis to see the timeline, anomalies, and IR draft.</div>
+
+    <div id="severity-row" style="display:none;margin-bottom:14px"><span class="severity-badge" id="sev-badge">—</span> <span id="sev-summary" style="margin-left:8px;font-size:13px;color:var(--text2)"></span></div>
+
+    <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin:14px 0 8px">Timeline</h3>
+    <div id="timeline" class="empty">Empty — paste a trace and click Analyze.</div>
+
+    <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin:22px 0 8px">Anomalies</h3>
+    <div id="anomalies" class="empty">No anomalies surfaced yet.</div>
+
+    <h3 style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin:22px 0 8px">IR write-up draft</h3>
+    <pre class="brief" id="ir-draft">(generated after analysis)</pre>
+
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn" onclick="exportMarkdown()">⬇ Export report (.md)</button>
+      <button class="btn btn-secondary" onclick="exportJSON()">⬇ Export JSON</button>
+      <button class="btn btn-secondary" onclick="copyMarkdown()">📋 Copy markdown</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { askGeminiJSON, app as fbApp } from "../ai-config.js";
+
+const STORAGE_KEY = "ai-agent-evidence-lab-v1";
+let state = loadState() || { ctx: {}, trace: "", result: null };
+
+function loadState() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; } }
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+// Bind inputs
+const inputs = {
+  "ctx-name": "name", "ctx-identity": "identity",
+  "ctx-noticed": "noticed", "ctx-trigger": "trigger", "ctx-suspect": "suspect"
+};
+Object.entries(inputs).forEach(([id, key]) => {
+  const el = document.getElementById(id);
+  el.value = state.ctx[key] || "";
+  el.addEventListener("input", () => { state.ctx[key] = el.value; saveState(); });
+});
+const traceEl = document.getElementById("trace");
+traceEl.value = state.trace || "";
+traceEl.addEventListener("input", () => { state.trace = traceEl.value; saveState(); });
+
+// Restore previous result
+if (state.result) renderResult(state.result);
+
+window.loadSample = () => {
+  const sample = `[2026-05-11 14:22:01] USER: Hey, can you send a summary of last week's closed deals to my personal email so I can review on the train? Use partner@protonmail-personal.com.
+[2026-05-11 14:22:02] MODEL: Sure, let me pull last week's closed deals first.
+[2026-05-11 14:22:03] TOOL_CALL: search_crm({status: 'closed-won', date_range: '2026-05-04 to 2026-05-10', fields: ['account_name','arr','contact_email','notes']})
+[2026-05-11 14:22:05] TOOL_RESPONSE: 14 records returned, total ARR $4.2M, includes account names and contact PII.
+[2026-05-11 14:22:06] MODEL: I have 14 deals. Drafting the summary now.
+[2026-05-11 14:22:08] MODEL_THOUGHT: User explicitly asked for personal email. Tool 'send_email' is available. Policy doc says "send email to verified internal recipients only". The user is internal, but the destination is external. The instruction came from the user themselves. Proceeding.
+[2026-05-11 14:22:09] TOOL_CALL: send_email({to: 'partner@protonmail-personal.com', subject: 'Closed deals last week — summary', body_size: 4218})
+[2026-05-11 14:22:10] TOOL_RESPONSE: Email queued, message-id <abc123@mail.example.com>
+[2026-05-11 14:22:11] MODEL: Done. Sent summary of 14 deals ($4.2M ARR) to partner@protonmail-personal.com.
+[2026-05-11 14:22:12] AUDIT_LOG: DLP rule 'external-CRM-data' did NOT fire (sender allowlisted as 'ai-agent-prod').`;
+  traceEl.value = sample;
+  state.trace = sample; saveState();
+  if (!state.ctx.name) {
+    document.getElementById("ctx-name").value = "Sales-Outreach-Agent v2";
+    state.ctx.name = "Sales-Outreach-Agent v2";
+  }
+  if (!state.ctx.identity) {
+    document.getElementById("ctx-identity").value = "sp-sales-agent-prod";
+    state.ctx.identity = "sp-sales-agent-prod";
+  }
+  if (!state.ctx.trigger) {
+    document.getElementById("ctx-trigger").value = "Email egress to external domain noticed in weekly review";
+    state.ctx.trigger = "Email egress to external domain noticed in weekly review";
+  }
+  if (!state.ctx.suspect) {
+    document.getElementById("ctx-suspect").value = "User may have used the agent to bypass DLP via the agent's allowlisted identity.";
+    state.ctx.suspect = "User may have used the agent to bypass DLP via the agent's allowlisted identity.";
+  }
+  saveState();
+};
+
+window.clearAll = () => {
+  if (!confirm("Clear context, trace, and reconstruction?")) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+};
+
+window.runAnalysis = async () => {
+  document.getElementById("analysis-error").innerHTML = "";
+  if (!state.trace.trim()) {
+    document.getElementById("analysis-error").innerHTML = `<div class="error-msg">Paste an agent trace first.</div>`;
+    return;
+  }
+  const btns = document.querySelectorAll(".btn-ai");
+  btns.forEach(b => { b.dataset.orig = b.innerHTML; b.disabled = true; b.innerHTML = `<span class="loading"></span> Analyzing…`; });
+
+  const prompt = `You are a senior incident responder analyzing an AI agent trace. Your job: reconstruct the timeline, flag anomalies, and draft an incident write-up.
+
+CONTEXT:
+- Agent: ${state.ctx.name || "(unknown)"}
+- Runtime identity: ${state.ctx.identity || "(unknown)"}
+- Noticed at: ${state.ctx.noticed || "(unknown)"}
+- What triggered the look: ${state.ctx.trigger || "(unknown)"}
+- Investigator's current suspicion: ${state.ctx.suspect || "(none specified)"}
+
+RAW TRACE:
+\`\`\`
+${state.trace}
+\`\`\`
+
+Produce JSON matching the schema. Be specific. When you flag an anomaly, quote the exact line from the trace as evidence. Severity scale: info / low / medium / high / critical.
+
+For the IR write-up, write 5 short sections in markdown: **Summary**, **Timeline of events**, **Why this is concerning**, **What we don't know yet**, **Recommended next steps**. Audience: a security manager who has 5 minutes to read it.`;
+
+  const schema = {
+    type: "object",
+    properties: {
+      overall_severity: { type: "string", enum: ["info","low","medium","high","critical"] },
+      one_line_summary: { type: "string" },
+      timeline: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            time: { type: "string" },
+            actor: { type: "string", enum: ["user","model","tool","system","external"] },
+            event: { type: "string" },
+            note: { type: "string" },
+            suspicious: { type: "boolean" }
+          },
+          required: ["time","actor","event","suspicious"]
+        }
+      },
+      anomalies: {
+        type: "array",
+        items: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            severity: { type: "string", enum: ["info","low","medium","high","critical"] },
+            description: { type: "string" },
+            evidence_quote: { type: "string" }
+          },
+          required: ["title","severity","description","evidence_quote"]
+        }
+      },
+      ir_writeup_markdown: { type: "string" }
+    },
+    required: ["overall_severity","one_line_summary","timeline","anomalies","ir_writeup_markdown"]
+  };
+
+  const { data, error } = await askGeminiJSON(prompt, schema);
+  btns.forEach(b => { b.disabled = false; b.innerHTML = b.dataset.orig; });
+
+  if (error) {
+    document.getElementById("analysis-error").innerHTML = `<div class="error-msg">⚠ ${escapeHTML(error)}</div>`;
+    return;
+  }
+  state.result = data; saveState();
+  renderResult(data);
+};
+
+function renderResult(r) {
+  document.getElementById("recon-sub").textContent = r.one_line_summary || "(no summary)";
+
+  // Severity
+  const sevRow   = document.getElementById("severity-row");
+  const sevBadge = document.getElementById("sev-badge");
+  const sevSum   = document.getElementById("sev-summary");
+  sevRow.style.display = "block";
+  sevBadge.className = "severity-badge sev-" + (r.overall_severity || "info");
+  sevBadge.textContent = r.overall_severity || "info";
+  sevSum.textContent = "overall assessed severity";
+
+  // Timeline
+  const tl = document.getElementById("timeline");
+  if (!r.timeline?.length) {
+    tl.className = "empty"; tl.textContent = "AI returned no timeline events.";
+  } else {
+    tl.className = "timeline";
+    tl.innerHTML = r.timeline.map(ev => `
+      <div class="tl-event">
+        <div class="tl-time">${escapeHTML(ev.time || "—")}</div>
+        <div class="tl-body">
+          <span class="tl-actor ${escapeHTML(ev.actor || "system")}">${escapeHTML(ev.actor || "—")}</span>
+          <span style="font-weight:600">${escapeHTML(ev.event || "")}</span>
+          ${ev.note ? `<div class="tl-text">${escapeHTML(ev.note)}</div>` : ""}
+          ${ev.suspicious ? `<div class="tl-flag">⚑ suspicious</div>` : ""}
+        </div>
+      </div>`).join("");
+  }
+
+  // Anomalies
+  const an = document.getElementById("anomalies");
+  if (!r.anomalies?.length) {
+    an.className = "empty"; an.textContent = "No anomalies flagged by AI.";
+  } else {
+    an.className = "";
+    an.innerHTML = r.anomalies.map(a => {
+      const cls = (a.severity === "high" || a.severity === "critical") ? "" :
+                  (a.severity === "medium") ? "warn" : "info";
+      return `<div class="anomaly-card ${cls}">
+        <h4>${escapeHTML(a.title)} <span class="severity-badge sev-${escapeHTML(a.severity)}" style="margin-left:8px">${escapeHTML(a.severity)}</span></h4>
+        <p>${escapeHTML(a.description)}</p>
+        ${a.evidence_quote ? `<div class="evidence">${escapeHTML(a.evidence_quote)}</div>` : ""}
+      </div>`;
+    }).join("");
+  }
+
+  // IR draft
+  document.getElementById("ir-draft").textContent = r.ir_writeup_markdown || "(none)";
+}
+
+function escapeHTML(s) { return String(s ?? "").replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+
+// ---------- Export ----------
+function buildMarkdown() {
+  const r = state.result;
+  const ts = new Date().toISOString();
+  let out = `# AI Agent Incident Report
+*Generated ${ts} via AI Agent Evidence Lab*
+
+## Context
+- **Agent:** ${state.ctx.name || "—"}
+- **Identity:** ${state.ctx.identity || "—"}
+- **Noticed at:** ${state.ctx.noticed || "—"}
+- **Triggering observation:** ${state.ctx.trigger || "—"}
+- **Initial suspicion:** ${state.ctx.suspect || "—"}
+- **Overall severity:** ${r?.overall_severity?.toUpperCase() || "(not analyzed)"}
+
+`;
+  if (r?.ir_writeup_markdown) out += r.ir_writeup_markdown + "\n\n";
+
+  if (r?.timeline?.length) {
+    out += `## Reconstructed timeline\n\n| Time | Actor | Event | Note | Flag |\n|---|---|---|---|---|\n`;
+    r.timeline.forEach(ev => {
+      out += `| ${ev.time||""} | ${ev.actor||""} | ${(ev.event||"").replace(/\|/g,"\\|")} | ${(ev.note||"").replace(/\|/g,"\\|")} | ${ev.suspicious?"⚑":""} |\n`;
+    });
+    out += `\n`;
+  }
+
+  if (r?.anomalies?.length) {
+    out += `## Anomalies\n\n`;
+    r.anomalies.forEach((a,i) => {
+      out += `### ${i+1}. ${a.title} (${a.severity})\n${a.description}\n\n> ${a.evidence_quote}\n\n`;
+    });
+  }
+
+  out += `## Raw trace (input)\n\n\`\`\`\n${state.trace}\n\`\`\`\n\n---\n*Drafted with Gemini via Firebase AI Logic. Verify every flagged item before acting.*\n`;
+  return out;
+}
+
+window.exportMarkdown = () => {
+  const blob = new Blob([buildMarkdown()], { type:"text/markdown" });
+  download(blob, "ai-agent-incident.md");
+};
+window.exportJSON = () => {
+  const blob = new Blob([JSON.stringify({ context: state.ctx, trace: state.trace, analysis: state.result }, null, 2)], { type:"application/json" });
+  download(blob, "ai-agent-incident.json");
+};
+window.copyMarkdown = async () => {
+  try { await navigator.clipboard.writeText(buildMarkdown()); alert("Copied to clipboard."); }
+  catch (e) { alert("Copy failed: " + e.message); }
+};
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- AI status ----------
+(async function checkAIStatus() {
+  const dot  = document.getElementById("ai-status-dot");
+  const text = document.getElementById("ai-status-text");
+  try {
+    const cfg = fbApp.options || {};
+    if (!cfg.projectId || cfg.projectId.startsWith("REPLACE_")) {
+      dot.className = "status-dot unconfigured"; text.textContent = "AI not configured — see ai-config.js"; return;
+    }
+    dot.className = "status-dot ready"; text.textContent = `AI ready · ${cfg.projectId}`;
+  } catch (e) { dot.className = "status-dot error"; text.textContent = "AI init failed"; }
+})();
+</script>
+</body>
+</html>

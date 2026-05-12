@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Asset &amp; Blast Radius Mapper</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0e17;--surface:#111827;--surface2:#1a2332;--surface3:#243044;--accent:#ef4444;--accent2:#f97316;--green:#22c55e;--blue:#3b82f6;--purple:#a855f7;--cyan:#06b6d4;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--border:#1e293b;--warning:#fbbf24}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;min-height:100vh;line-height:1.5}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:18px 24px;border-bottom:1px solid var(--border);background:var(--surface)}
+.topbar a{color:var(--text2);text-decoration:none;font-size:13px}
+.topbar a:hover{color:var(--cyan)}
+.status{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3)}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--text3)}
+.status-dot.ready{background:var(--green)}.status-dot.unconfigured{background:var(--warning)}.status-dot.error{background:var(--accent)}
+
+.hero{text-align:center;padding:40px 24px 24px;max-width:900px;margin:0 auto}
+.hero-icon{font-size:40px;margin-bottom:12px}
+.hero h1{font-size:28px;font-weight:700;margin-bottom:6px;background:linear-gradient(135deg,var(--purple),var(--cyan),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{color:var(--text2);font-size:14px;max-width:680px;margin:0 auto}
+
+.notice{max-width:1100px;margin:0 auto 24px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.3);border-radius:10px;color:var(--text2);font-size:12px;display:flex;gap:10px;align-items:flex-start}
+.notice strong{color:var(--warning)}
+
+.container{max-width:1100px;margin:0 auto;padding:0 24px 60px;display:grid;grid-template-columns:340px 1fr;gap:24px}
+@media(max-width:900px){.container{grid-template-columns:1fr}}
+
+.sidebar{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;align-self:flex-start;position:sticky;top:24px;max-height:calc(100vh - 48px);overflow-y:auto}
+.sidebar h3{font-size:11px;letter-spacing:2px;color:var(--text3);text-transform:uppercase;margin-bottom:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.sidebar .count{font-weight:400;color:var(--text2)}
+
+.asset-list{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.asset-item{padding:10px 12px;border-radius:8px;background:var(--surface2);cursor:pointer;display:flex;justify-content:space-between;align-items:center;border:1px solid transparent;transition:all .15s}
+.asset-item:hover{border-color:var(--border)}
+.asset-item.active{border-color:var(--purple);background:var(--surface3)}
+.asset-item-name{font-size:13px;color:var(--text);font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.asset-item-type{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-left:6px}
+.empty-state{color:var(--text3);font-size:12px;text-align:center;padding:18px;font-style:italic}
+
+.main{display:flex;flex-direction:column;gap:18px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+.panel h2{font-size:18px;font-weight:600;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.panel-sub{font-size:13px;color:var(--text2);margin-bottom:18px}
+
+.field{margin-bottom:14px}
+.field label{display:block;font-size:11px;color:var(--text2);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.field input, .field textarea, .field select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:14px;font-family:inherit;resize:vertical}
+.field input:focus, .field textarea:focus, .field select:focus{outline:none;border-color:var(--purple)}
+.field textarea{min-height:70px}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:600px){.field-row{grid-template-columns:1fr}}
+
+.btn{background:var(--purple);color:#fff;border:none;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;transition:all .15s;font-family:inherit}
+.btn:hover{background:var(--cyan);transform:translateY(-1px)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-secondary{background:var(--surface3);color:var(--text)}
+.btn-secondary:hover{background:var(--border);transform:none}
+.btn-ai{background:linear-gradient(135deg,var(--purple),var(--cyan));}
+.btn-ai:hover{background:linear-gradient(135deg,var(--cyan),var(--accent2))}
+.btn-danger{background:transparent;color:var(--accent);border:1px solid var(--accent);padding:6px 12px;font-size:12px}
+.btn-danger:hover{background:rgba(239,68,68,.1);transform:none}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+
+.ai-output{background:var(--bg);border:1px dashed var(--border);border-radius:8px;padding:14px;margin-top:14px;font-size:13px;white-space:pre-wrap;line-height:1.7;color:var(--text)}
+.ai-output.empty{color:var(--text3);font-style:italic;text-align:center;padding:24px}
+.ai-output strong{color:var(--cyan)}
+.ai-output code{background:var(--surface2);padding:1px 6px;border-radius:4px;font-size:12px;font-family:'Cascadia Code',monospace}
+
+.loading{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.error-msg{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);color:#fca5a5;padding:10px 12px;border-radius:8px;font-size:13px;margin-top:10px}
+
+.radius-meter{display:flex;align-items:center;gap:10px;margin-top:8px}
+.radius-bar{flex:1;height:8px;border-radius:4px;background:var(--surface3);overflow:hidden}
+.radius-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--warning),var(--accent));transition:width .4s}
+.radius-label{font-size:12px;font-weight:600;min-width:60px;text-align:right}
+.radius-label.low{color:var(--green)}.radius-label.med{color:var(--warning)}.radius-label.high{color:var(--accent)}
+
+pre.brief{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:'Cascadia Code','Consolas',monospace;font-size:12px;color:var(--text);overflow-x:auto;max-height:400px;overflow-y:auto;white-space:pre-wrap}
+
+.tag{display:inline-block;font-size:10px;padding:3px 10px;border-radius:12px;margin:2px 4px 2px 0;font-weight:500}
+.tag-purple{background:rgba(168,85,247,.12);color:var(--purple)}
+.tag-cyan{background:rgba(6,182,212,.12);color:var(--cyan)}
+.tag-red{background:rgba(239,68,68,.12);color:var(--accent)}
+.tag-blue{background:rgba(59,130,246,.12);color:var(--blue)}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="index.html">← AI Threat Hunt Field Lab</a>
+  <div class="status">
+    <span class="status-dot" id="ai-status-dot"></span>
+    <span id="ai-status-text">Checking AI…</span>
+  </div>
+</div>
+
+<div class="hero">
+  <div class="hero-icon">🗺️</div>
+  <h1>AI Asset &amp; Blast Radius Mapper</h1>
+  <p>Inventory the AI systems in your environment. Map identities, data access, tool use, and downstream consumers. Gemini scores blast radius, flags governance gaps, and drafts a narrative.</p>
+</div>
+
+<div class="notice">
+  <span>🔒</span>
+  <div><strong>Data leaves the browser only when you click an AI button.</strong> Each "Analyze with AI" call sends the selected asset's inventory data to Gemini via Firebase AI Logic. Asset inventory is stored locally in this browser only — nothing is uploaded automatically.</div>
+</div>
+
+<div class="container">
+  <div class="sidebar">
+    <h3>Assets <span class="count" id="count">0</span></h3>
+    <div class="asset-list" id="asset-list"></div>
+    <button class="btn" style="width:100%" onclick="newAsset()">+ Add AI asset</button>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn btn-secondary" style="flex:1;font-size:11px;padding:7px" onclick="exportAll()">⬇ Export inventory</button>
+      <button class="btn btn-secondary" style="flex:1;font-size:11px;padding:7px" onclick="importAll()">⬆ Import</button>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="panel" id="welcome">
+      <h2>Welcome 👋</h2>
+      <div class="panel-sub">Add your first AI asset to get started. Examples: an internal RAG chatbot, a customer-facing copilot, an autonomous agent, a fine-tuned model deployed to production.</div>
+      <button class="btn" onclick="newAsset()">+ Add AI asset</button>
+    </div>
+  </div>
+</div>
+
+<template id="editor-tpl">
+  <div class="panel">
+    <h2>
+      <span><span id="hdr-name">Untitled asset</span></span>
+      <button class="btn btn-danger" onclick="deleteCurrent()">Delete</button>
+    </h2>
+    <div class="panel-sub">Capture what this AI system is and how it's wired in. Fields don't have to be exhaustive — the AI analysis works better with the high-value facts than with everything.</div>
+
+    <div class="field-row">
+      <div class="field"><label>Name</label><input data-f="name" placeholder="e.g., Support Copilot v3"></div>
+      <div class="field"><label>Type</label>
+        <select data-f="type">
+          <option>RAG chatbot</option>
+          <option>Customer-facing copilot</option>
+          <option>Internal copilot</option>
+          <option>Autonomous agent</option>
+          <option>Multi-agent system</option>
+          <option>Fine-tuned model</option>
+          <option>Embedded ML feature</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Underlying model(s)</label><input data-f="model" placeholder="e.g., gpt-4o + text-embedding-3-large"></div>
+      <div class="field"><label>Owner / business unit</label><input data-f="owner" placeholder="e.g., Customer Support / Support Tools team"></div>
+    </div>
+    <div class="field"><label>What it does (1-2 sentences)</label><textarea data-f="description" placeholder="Plain-English description of purpose and how it's used."></textarea></div>
+  </div>
+
+  <div class="panel">
+    <h2>Identity &amp; permissions</h2>
+    <div class="panel-sub">What identity does the system run as? What can that identity touch?</div>
+    <div class="field"><label>Runtime identity / service principal</label><input data-f="identity" placeholder="e.g., Entra ID app reg 'support-copilot-prod'"></div>
+    <div class="field"><label>Roles &amp; scopes (one per line)</label><textarea data-f="roles" placeholder="e.g.&#10;Microsoft Graph: Mail.Read&#10;Zendesk: tickets.read tickets.write&#10;Azure SQL: db_datareader on supportdb"></textarea></div>
+    <div class="field"><label>Human users with elevated access</label><input data-f="admins" placeholder="e.g., support-tools-admins (12 members)"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Data access</h2>
+    <div class="panel-sub">What does it read? What does it write? Be honest about implicit access via retrieval / context windows.</div>
+    <div class="field-row">
+      <div class="field"><label>Reads from (one per line)</label><textarea data-f="reads" placeholder="e.g.&#10;Zendesk tickets (all)&#10;Confluence /support space&#10;Salesforce contact records"></textarea></div>
+      <div class="field"><label>Writes to (one per line)</label><textarea data-f="writes" placeholder="e.g.&#10;Zendesk ticket comments&#10;Customer email replies (with human review)&#10;Internal audit log"></textarea></div>
+    </div>
+    <div class="field"><label>Sensitive data types touched</label>
+      <input data-f="sensitive" placeholder="e.g., PII (names, emails), payment status, internal pricing">
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Tool use &amp; downstream reach</h2>
+    <div class="panel-sub">What tools/APIs can it call? Who consumes its output? Where does that output flow next?</div>
+    <div class="field"><label>Tools / function calls available (one per line)</label><textarea data-f="tools" placeholder="e.g.&#10;create_zendesk_ticket(...)&#10;refund_charge(...) — requires human approval&#10;search_kb(...)"></textarea></div>
+    <div class="field"><label>Downstream consumers</label><textarea data-f="consumers" placeholder="e.g.&#10;Support agents (in-app chat)&#10;Customer email (auto-reply, after manual approval)&#10;Weekly exec dashboard"></textarea></div>
+    <div class="field"><label>Existing safeguards</label><textarea data-f="safeguards" placeholder="e.g.&#10;Prompt-injection filter on inbound&#10;Human-in-the-loop for refunds&#10;Audit log of all tool calls"></textarea></div>
+  </div>
+
+  <div class="panel">
+    <h2>AI analysis 🤖</h2>
+    <div class="panel-sub">Send this asset's inventory to Gemini for blast-radius scoring, gap analysis, and a CISO-facing narrative.</div>
+
+    <div class="btn-row">
+      <button class="btn btn-ai" onclick="analyzeAsset('blast')">🎯 Score blast radius</button>
+      <button class="btn btn-ai" onclick="analyzeAsset('gaps')">🕳️ Find gaps</button>
+      <button class="btn btn-ai" onclick="analyzeAsset('narrative')">📝 Draft narrative</button>
+      <button class="btn btn-ai" onclick="analyzeAsset('full')">⚡ Run all</button>
+    </div>
+
+    <div id="radius-display" style="display:none;margin-top:18px">
+      <label style="font-size:11px;color:var(--text2);font-weight:600;text-transform:uppercase;letter-spacing:1px">Blast radius score</label>
+      <div class="radius-meter">
+        <div class="radius-bar"><div class="radius-fill" id="radius-fill" style="width:0%"></div></div>
+        <span class="radius-label" id="radius-label">—</span>
+      </div>
+    </div>
+
+    <div class="ai-output empty" id="ai-out">AI analysis will appear here.</div>
+
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn btn-secondary" onclick="exportCurrent()">⬇ Export this asset (MD)</button>
+      <button class="btn btn-secondary" onclick="exportCurrentJSON()">⬇ Export JSON</button>
+    </div>
+  </div>
+</template>
+
+<script type="module">
+import { askGemini, askGeminiJSON, app as fbApp } from "../ai-config.js";
+
+const STORAGE_KEY = "ai-asset-blast-radius-v1";
+let state = loadState() || { assets: [], currentId: null };
+
+function loadState() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null"); } catch { return null; } }
+function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+const main = document.getElementById("main");
+const listEl = document.getElementById("asset-list");
+const countEl = document.getElementById("count");
+
+function uid() { return "a_" + Math.random().toString(36).slice(2,10); }
+
+function renderList() {
+  countEl.textContent = state.assets.length;
+  if (!state.assets.length) {
+    listEl.innerHTML = `<div class="empty-state">No assets yet.</div>`;
+    return;
+  }
+  listEl.innerHTML = state.assets.map(a => `
+    <div class="asset-item ${a.id===state.currentId?'active':''}" data-id="${a.id}">
+      <span class="asset-item-name">${escapeHTML(a.name || "Untitled asset")}</span>
+      <span class="asset-item-type">${escapeHTML(a.type || "")}</span>
+    </div>`).join("");
+  listEl.querySelectorAll(".asset-item").forEach(el => {
+    el.addEventListener("click", () => openAsset(el.dataset.id));
+  });
+}
+
+function openAsset(id) {
+  state.currentId = id; saveState(); renderList();
+  const a = state.assets.find(x => x.id === id);
+  if (!a) return;
+  const tpl = document.getElementById("editor-tpl").content.cloneNode(true);
+  main.innerHTML = "";
+  main.appendChild(tpl);
+  // bind fields
+  main.querySelectorAll("[data-f]").forEach(el => {
+    const f = el.dataset.f;
+    el.value = a[f] || "";
+    el.addEventListener("input", () => {
+      a[f] = el.value;
+      if (f === "name") document.getElementById("hdr-name").textContent = a.name || "Untitled asset";
+      saveState();
+      if (f === "name" || f === "type") renderList();
+    });
+  });
+  document.getElementById("hdr-name").textContent = a.name || "Untitled asset";
+  // restore AI outputs
+  if (a.aiOutput) renderOut("ai-out", a.aiOutput);
+  if (a.radiusScore != null) showRadius(a.radiusScore);
+}
+
+window.newAsset = () => {
+  const a = { id: uid(), name:"", type:"RAG chatbot", model:"", owner:"", description:"",
+              identity:"", roles:"", admins:"",
+              reads:"", writes:"", sensitive:"",
+              tools:"", consumers:"", safeguards:"",
+              aiOutput:"", radiusScore:null };
+  state.assets.unshift(a); saveState(); renderList(); openAsset(a.id);
+};
+
+window.deleteCurrent = () => {
+  if (!state.currentId) return;
+  const a = state.assets.find(x => x.id === state.currentId);
+  if (!confirm(`Delete "${a?.name || 'this asset'}"? This cannot be undone.`)) return;
+  state.assets = state.assets.filter(x => x.id !== state.currentId);
+  state.currentId = state.assets[0]?.id || null;
+  saveState(); renderList();
+  if (state.currentId) openAsset(state.currentId);
+  else main.innerHTML = `<div class="panel"><h2>All assets deleted</h2><div class="panel-sub">Add a new AI asset to continue.</div><button class="btn" onclick="newAsset()">+ Add AI asset</button></div>`;
+};
+
+// ---------- AI analysis ----------
+function currentAsset() { return state.assets.find(x => x.id === state.currentId); }
+
+function summarizeAsset(a) {
+  return `Asset: ${a.name || "Untitled"}
+Type: ${a.type}
+Model(s): ${a.model || "—"}
+Owner: ${a.owner || "—"}
+Purpose: ${a.description || "—"}
+
+Identity: ${a.identity || "—"}
+Roles & scopes:
+${a.roles || "—"}
+Privileged human users: ${a.admins || "—"}
+
+Reads from:
+${a.reads || "—"}
+Writes to:
+${a.writes || "—"}
+Sensitive data: ${a.sensitive || "—"}
+
+Tools / function calls:
+${a.tools || "—"}
+Downstream consumers:
+${a.consumers || "—"}
+Existing safeguards:
+${a.safeguards || "—"}`;
+}
+
+window.analyzeAsset = async (mode) => {
+  const a = currentAsset(); if (!a) return;
+  const stop = setLoading(`.btn-ai`, "Analyzing…");
+  const summary = summarizeAsset(a);
+
+  let prompt;
+  if (mode === "blast" || mode === "full") {
+    prompt = `You are an AI security architect scoring blast radius for an AI system. Use this rubric:
+- Identity scope (how many systems can the runtime identity touch)
+- Data sensitivity (PII / regulated / business-critical?)
+- Write/action capability (can it cause irreversible changes?)
+- Downstream reach (who sees the output and where does it flow?)
+- Existing safeguards (what reduces risk?)
+
+Asset inventory:
+${summary}
+
+Return JSON with this exact schema:
+{
+  "blast_radius_score": <integer 0-100, 0=trivial, 100=catastrophic>,
+  "score_rationale": "<2-3 sentence explanation>",
+  "top_concerns": ["<concern 1>", "<concern 2>", "<concern 3>"],
+  "containment_questions": ["<question to ask the owner 1>", "<question 2>", "<question 3>"]
+}`;
+    const schema = {
+      type: "object",
+      properties: {
+        blast_radius_score: { type: "integer" },
+        score_rationale: { type: "string" },
+        top_concerns: { type: "array", items: { type: "string" } },
+        containment_questions: { type: "array", items: { type: "string" } }
+      },
+      required: ["blast_radius_score","score_rationale","top_concerns","containment_questions"]
+    };
+    const { data, error } = await askGeminiJSON(prompt, schema);
+    if (error) { stop(); return renderError("ai-out", error); }
+    a.radiusScore = data.blast_radius_score;
+    a.aiOutput = `**Blast radius: ${data.blast_radius_score}/100**\n${data.score_rationale}\n\n**Top concerns:**\n${data.top_concerns.map(c=>`- ${c}`).join("\n")}\n\n**Questions for the owner:**\n${data.containment_questions.map(c=>`- ${c}`).join("\n")}`;
+    showRadius(data.blast_radius_score);
+    renderOut("ai-out", a.aiOutput);
+    saveState();
+    if (mode === "full") await analyzeAsset_internal(a, "gaps", true);
+    if (mode === "full") await analyzeAsset_internal(a, "narrative", true);
+  } else {
+    await analyzeAsset_internal(a, mode, false);
+  }
+  stop();
+};
+
+async function analyzeAsset_internal(a, mode, append) {
+  const summary = summarizeAsset(a);
+  let prompt;
+  if (mode === "gaps") {
+    prompt = `You are reviewing an AI system inventory for governance and security gaps. Be specific and actionable.
+
+Asset inventory:
+${summary}
+
+Identify:
+**Missing safeguards:** controls that should exist but don't appear to.
+**Identity over-permission:** scopes that look broader than necessary.
+**Data leakage paths:** ways sensitive data could leak via output or tool calls.
+**Audit gaps:** what isn't being logged that should be.
+**Question marks:** what the inventory doesn't tell you but you'd need to know.
+
+Use markdown bold + bullets. Be specific to this asset — generic advice is unhelpful.`;
+  } else if (mode === "narrative") {
+    prompt = `Write a 4-paragraph CISO-facing blast radius narrative for this AI system. Plain English, no jargon for jargon's sake. The narrative should let a CISO who has never seen this system understand: what it is, what it can reach, what could go wrong, what they should ask the owner.
+
+Asset inventory:
+${summary}
+
+Tone: direct, calm, factual. Length: ~250-350 words total.`;
+  }
+  const { text, error } = await askGemini(prompt);
+  if (error) return renderError("ai-out", error);
+  a.aiOutput = (append && a.aiOutput ? a.aiOutput + "\n\n---\n\n" : "") +
+               `**${mode === "gaps" ? "Gaps" : "Narrative"}:**\n${text}`;
+  renderOut("ai-out", a.aiOutput);
+  saveState();
+}
+
+function showRadius(score) {
+  const box = document.getElementById("radius-display");
+  const fill = document.getElementById("radius-fill");
+  const label = document.getElementById("radius-label");
+  if (!box) return;
+  box.style.display = "block";
+  fill.style.width = score + "%";
+  label.textContent = score + " / 100";
+  label.className = "radius-label " + (score < 34 ? "low" : score < 67 ? "med" : "high");
+}
+
+function renderOut(id, text) {
+  const el = document.getElementById(id);
+  el.classList.remove("empty");
+  const html = escapeHTML(text)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`(.+?)`/g, "<code>$1</code>")
+    .replace(/^(\s*)[-*]\s+(.+)$/gm, "$1• $2");
+  el.innerHTML = html;
+}
+function renderError(id, msg) {
+  const el = document.getElementById(id);
+  el.classList.remove("empty");
+  el.innerHTML = `<div class="error-msg">⚠ ${escapeHTML(msg)}</div>`;
+}
+function escapeHTML(s) { return String(s).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c])); }
+function setLoading(selector, txt) {
+  const btns = document.querySelectorAll(selector);
+  btns.forEach(b => { b.dataset.orig = b.innerHTML; b.disabled = true; b.innerHTML = `<span class="loading"></span> ${txt}`; });
+  return () => btns.forEach(b => { b.disabled = false; b.innerHTML = b.dataset.orig; });
+}
+
+// ---------- Export ----------
+function assetMarkdown(a) {
+  return `# AI Asset: ${a.name || "Untitled"}
+
+- **Type:** ${a.type}
+- **Model(s):** ${a.model || "—"}
+- **Owner:** ${a.owner || "—"}
+- **Blast radius score:** ${a.radiusScore != null ? a.radiusScore + "/100" : "(not scored)"}
+
+## Description
+${a.description || "—"}
+
+## Identity & permissions
+- **Runtime identity:** ${a.identity || "—"}
+- **Roles & scopes:**
+\`\`\`
+${a.roles || "—"}
+\`\`\`
+- **Privileged human users:** ${a.admins || "—"}
+
+## Data access
+- **Reads from:**
+\`\`\`
+${a.reads || "—"}
+\`\`\`
+- **Writes to:**
+\`\`\`
+${a.writes || "—"}
+\`\`\`
+- **Sensitive data:** ${a.sensitive || "—"}
+
+## Tool use & downstream reach
+- **Tools / function calls:**
+\`\`\`
+${a.tools || "—"}
+\`\`\`
+- **Downstream consumers:**
+\`\`\`
+${a.consumers || "—"}
+\`\`\`
+- **Existing safeguards:**
+\`\`\`
+${a.safeguards || "—"}
+\`\`\`
+
+## AI analysis
+${a.aiOutput || "_(not generated)_"}
+
+---
+*Drafted with Gemini via Firebase AI Logic. Verify before circulating.*
+`;
+}
+window.exportCurrent = () => {
+  const a = currentAsset(); if (!a) return;
+  download(new Blob([assetMarkdown(a)], { type:"text/markdown" }), `${(a.name||"asset").replace(/\W+/g,"-")}.md`);
+};
+window.exportCurrentJSON = () => {
+  const a = currentAsset(); if (!a) return;
+  download(new Blob([JSON.stringify(a,null,2)], { type:"application/json" }), `${(a.name||"asset").replace(/\W+/g,"-")}.json`);
+};
+window.exportAll = () => {
+  download(new Blob([JSON.stringify(state, null, 2)], { type:"application/json" }), "ai-asset-inventory.json");
+};
+window.importAll = () => {
+  const inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "application/json";
+  inp.onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (!Array.isArray(parsed.assets)) throw new Error("Not an inventory file");
+      if (!confirm(`Import ${parsed.assets.length} asset(s)? This will MERGE into your current inventory.`)) return;
+      const existingIds = new Set(state.assets.map(a => a.id));
+      parsed.assets.forEach(a => { if (!existingIds.has(a.id)) state.assets.push(a); });
+      saveState(); renderList();
+      alert(`Imported. Total assets: ${state.assets.length}`);
+    } catch (err) { alert("Import failed: " + err.message); }
+  };
+  inp.click();
+};
+function download(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- AI status ----------
+(async function checkAIStatus() {
+  const dot  = document.getElementById("ai-status-dot");
+  const text = document.getElementById("ai-status-text");
+  try {
+    const cfg = fbApp.options || {};
+    if (!cfg.projectId || cfg.projectId.startsWith("REPLACE_")) {
+      dot.className = "status-dot unconfigured"; text.textContent = "AI not configured — see ai-config.js"; return;
+    }
+    dot.className = "status-dot ready"; text.textContent = `AI ready · ${cfg.projectId}`;
+  } catch (e) { dot.className = "status-dot error"; text.textContent = "AI init failed"; }
+})();
+
+// ---------- Init ----------
+renderList();
+if (state.currentId && state.assets.find(a => a.id === state.currentId)) openAsset(state.currentId);
+</script>
+</body>
+</html>
