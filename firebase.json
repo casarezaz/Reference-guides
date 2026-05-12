@@ -6,8 +6,11 @@
       "**/.*",
       "**/node_modules/**",
       "README.md",
+      "README-DEPLOY.md",
       ".firebaserc",
-      "firebase-deploy.md"
+      "firebase-deploy.md",
+      "deploy.sh",
+      "apply-ai-retrofits.sh"
     ],
     "cleanUrls": true,
     "trailingSlash": true,
